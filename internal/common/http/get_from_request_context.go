@@ -1,4 +1,4 @@
-package http
+package common_http
 
 import (
 	"errors"
@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	trackIdUrlParam  = "trackID"
+	trackIdUrlParam = "trackID"
 	artistIdUrlParam = "artistID"
-	albumIdUrlParam  = "albumID"
-	userIdUrlParam   = "userID"
+	albumIdUrlParam = "albumID"
+	userIdUrlParam = "userID"
 )
 
 // GetUserFromAuthorization returns error if authentication failed
@@ -40,6 +40,10 @@ func GetUserIDFromRequest(r *http.Request) (uint32, error) {
 
 func GetArtistIDFromRequest(r *http.Request) (uint32, error) {
 	return convertID(chi.URLParam(r, artistIdUrlParam))
+}
+
+func GetAlbumIDFromRequest(r *http.Request) (uint32, error) {
+	return convertID(chi.URLParam(r, albumIdUrlParam))
 }
 
 func convertID(idUrl string) (uint32, error) {

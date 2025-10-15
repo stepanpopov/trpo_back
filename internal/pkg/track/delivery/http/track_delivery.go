@@ -15,7 +15,7 @@ import (
 
 type Handler struct {
 	trackServices  track.Usecase
-	artistServices artist.Usecase
+	artistServices artist.Usecase 
 	logger         logger.Logger
 }
 
@@ -27,59 +27,19 @@ func NewHandler(tu track.Usecase, au artist.Usecase, l logger.Logger) *Handler {
 	}
 }
 
+
 // TODO ERRORS
-
-type trackCreateInput struct {
-	Name      string   `json:"name"`
-	AlbumID   uint32   `json:"albumID,omitempty"`
-	ArtistsID []uint32 `json:"artistsID"`
-	CoverSrc  string   `json:"cover"`
-	RecordSrc string   `json:"record"`
-}
-
-func (tci *trackCreateInput) ToTrack() models.Track {
-	return models.Track{
-		Name:      tci.Name,
-		AlbumID:   tci.AlbumID,
-		CoverSrc:  tci.CoverSrc,
-		RecordSrc: tci.RecordSrc,
-	}
-}
-
-type trackCreateResponse struct {
-	ID uint32 `json:"id"`
-}
 
 // swaggermock
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	var tci trackCreateInput
-
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&tci); err != nil {
-		h.logger.Info(err.Error())
-		commonHttp.ErrorResponse(w, "incorrect input body", http.StatusBadRequest, h.logger)
-		return
-	}
-
-	track := tci.ToTrack()
-
-	trackID, err := h.trackServices.Create(track, tci.ArtistsID)
-	if err != nil {
-		h.logger.Error(err.Error())
-		commonHttp.ErrorResponse(w, "can't create track", http.StatusInternalServerError, h.logger)
-		return
-	}
-
-	tcr := trackCreateResponse{ID: trackID}
-
-	commonHttp.SuccessResponse(w, tcr, h.logger)
+	// ...
 }
 
 // swaggermock
 func (h *Handler) Read(w http.ResponseWriter, r *http.Request) {
 	userID, err := commonHttp.GetTrackIDFromRequest(r)
 	if err != nil {
-		h.logger.Infof("get track by id : %v", err.Error())
+		h.logger.Infof("get track by id : %v", err)
 		commonHttp.ErrorResponse(w, "invalid url parameter", http.StatusBadRequest, h.logger)
 		return
 	}
@@ -122,6 +82,79 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	// ...
 }
 
+// swaggermock
+func (h *Handler) ReadByArtist(w http.ResponseWriter, r *http.Request) {
+	artistID, err := commonHttp.GetArtistIDFromRequest(r)
+	if err != nil {
+		h.logger.Infof("read by artist: %v", err)
+		commonHttp.ErrorResponse(w, "invalid url parameter", http.StatusBadRequest, h.logger)
+		return
+	}
+
+	tracks, err := h.trackServices.GetByArtist(artistID)
+	var errNoSuchArtist *models.NoSuchArtistError
+	if errors.As(err, &errNoSuchArtist) {
+		h.logger.Info(err.Error())
+		commonHttp.ErrorResponse(w, "no such artist", http.StatusBadRequest, h.logger)
+		return
+	} else if err != nil {
+		h.logger.Error(err.Error())
+		commonHttp.ErrorResponse(w, "error while getting artist tracks", http.StatusInternalServerError, h.logger)
+		return
+	}
+
+	resp, err := h.trackTransferFromQuery(tracks)
+	if err != nil {
+		h.logger.Error(err.Error())
+		commonHttp.ErrorResponse(w, "error while getting artist tracks", http.StatusInternalServerError, h.logger)
+		return
+	}
+
+	w.Header().Set("Content-Type", "json/application; charset=utf-8")
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(&resp); err != nil {
+		h.logger.Error(err.Error())
+		commonHttp.ErrorResponse(w, "can't encode response into json", http.StatusInternalServerError, h.logger)
+		return
+	}
+}
+
+func (h *Handler) ReadByAlbum(w http.ResponseWriter, r *http.Request) {
+	albumID, err := commonHttp.GetAlbumIDFromRequest(r)
+	if err != nil {
+		h.logger.Infof("read by album : %v", err)
+		commonHttp.ErrorResponse(w, "invalid url parameter", http.StatusBadRequest, h.logger)
+		return
+	}
+
+	tracks, err := h.trackServices.GetByAlbum(albumID)
+	var errNoSuchAlbum *models.NoSuchArtistError
+	if errors.As(err, &errNoSuchAlbum) {
+		h.logger.Info(err.Error())
+		commonHttp.ErrorResponse(w, "no such album", http.StatusBadRequest, h.logger)
+		return
+	} else if err != nil {
+		h.logger.Error(err.Error())
+		commonHttp.ErrorResponse(w, "error while getting album tracks", http.StatusInternalServerError, h.logger)
+		return
+	}
+
+	resp, err := h.trackTransferFromQuery(tracks)
+	if err != nil {
+		h.logger.Error(err.Error())
+		commonHttp.ErrorResponse(w, "error while getting artist tracks", http.StatusInternalServerError, h.logger)
+		return
+	}
+
+	w.Header().Set("Content-Type", "json/application; charset=utf-8")
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(&resp); err != nil {
+		h.logger.Error(err.Error())
+		commonHttp.ErrorResponse(w, "can't encode response into json", http.StatusInternalServerError, h.logger)
+		return
+	}
+}
+
 //	@Summary		Track Feed
 //	@Tags			track feed
 //	@Description	Feed tracks for user
@@ -153,6 +186,7 @@ func (h *Handler) Feed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
 
 // Converts Artist to ArtistTransfer
 func (h *Handler) artistTransferFromQuery(artists []models.Artist) []models.ArtistTransfer {
@@ -194,7 +228,7 @@ func (h *Handler) trackTransferFromQuery(tracks []models.Track) ([]models.TrackT
 			return nil, err
 		}
 
-		trackTransfers = append(trackTransfers, trackTransfer)
+		trackTransfers = append(trackTransfers,trackTransfer)
 	}
 
 	return trackTransfers, nil

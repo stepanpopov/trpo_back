@@ -6,6 +6,7 @@ import (
 	swagger "github.com/swaggo/http-swagger"
 
 	_ "github.com/go-park-mail-ru/2023_1_Technokaif/docs"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http/middleware"
 	album "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/album/delivery/http"
 	artist "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/delivery/http"
@@ -13,7 +14,6 @@ import (
 	authM "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/delivery/http/middleware"
 	track "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track/delivery/http"
 	user "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/delivery/http"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 )
 
 // InitRouter describes all app's endpoints and their handlers
@@ -27,7 +27,7 @@ func InitRouter(
 	loggger logger.Logger) *chi.Mux {
 
 	r := chi.NewRouter()
-
+	
 	// r.Use(middleware.Logger)  // DEBUG
 	r.Use(middleware.Logging(loggger))
 
@@ -47,7 +47,7 @@ func InitRouter(
 				// r.Put("/", album.Update)
 				// r.Delete("/", album.Delete)
 
-				r.Get("/tracks", album.Tracks)
+				r.Get("/tracks", track.ReadByAlbum)
 			})
 			r.Get("/feed", album.Feed)
 		})
@@ -59,14 +59,14 @@ func InitRouter(
 				// r.Put("/", artist.Update)
 				// r.Delete("/", artist.Delete)
 
-				r.Get("/tracks", artist.Tracks)
-				r.Get("/albums", artist.Albums)
+				r.Get("/tracks", track.ReadByArtist)
+				r.Get("/albums", track.ReadByAlbum)
 			})
 			r.Get("/feed", artist.Feed)
 		})
 
 		r.Route("/tracks", func(r chi.Router) {
-			r.Post("/", track.Create)
+			// r.Post("/", track.Create)
 			r.Route("/{trackID}", func(r chi.Router) {
 				r.Get("/", track.Read)
 				// r.Put("/", track.Update)
