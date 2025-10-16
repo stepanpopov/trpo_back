@@ -10,10 +10,9 @@ import (
 
 	"github.com/joho/godotenv" // load environment
 
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/app/internal/db/postgresql"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/app/internal/init/app"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/app/internal/server"
-
+	initApp "github.com/go-park-mail-ru/2023_1_Technokaif/init/app"
+	initDB "github.com/go-park-mail-ru/2023_1_Technokaif/init/db/postgresql"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/server"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 )
 
@@ -42,15 +41,15 @@ func main() {
 		return
 	}
 
-	db, tables, err := postgresql.InitPostgresDB()
+	db, err := initDB.InitPostgresDB()
 	if err != nil {
 		logger.Errorf("error while connecting to database: %v", err)
 		return
 	}
 
-	router := app.Init(db, tables, logger)
+	router := initApp.Init(db, logger)
 
-	var srv server.Server
+	srv := new(server.Server)
 	go func() {
 		if err := srv.Run(router, logger); err != nil {
 			log.Fatalf("can't launch server: %v", err)

@@ -10,6 +10,31 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// PostgreSQL tables
+var PostgresTables = struct {
+	Users         string
+	Tracks        string
+	Artists       string
+	Albums        string
+	Listens       string
+	ArtistsAlbums string
+	ArtistsTracks string
+	LikedAlbums   string
+	LikedArtists  string
+	LikedTracks   string
+}{
+	Users:         "Users",
+	Tracks:        "Tracks",
+	Artists:       "Artists",
+	Albums:        "Albums",
+	Listens:       "Listens",
+	ArtistsAlbums: "Artists_Albums",
+	ArtistsTracks: "Artists_Tracks",
+	LikedAlbums:   "Liked_albums",
+	LikedArtists:  "Liked_artists",
+	LikedTracks:   "Liked_tracks",
+}
+
 const (
 	maxIdleConns = 10
 	maxOpenConns = 10
@@ -26,7 +51,7 @@ type PostgresConfig struct {
 }
 
 // InitConfig inits DB configuration from environment variables
-func initPostgresConfig() (PostgresConfig, error) { // TODO CHECK FIELDS
+func InitPostgresConfig() (PostgresConfig, error) { // TODO CHECK FIELDS
 	cfg := PostgresConfig{
 		DBHost:     os.Getenv("DB_HOST"),
 		DBPort:     os.Getenv("DB_PORT"),
@@ -51,10 +76,10 @@ func initPostgresConfig() (PostgresConfig, error) { // TODO CHECK FIELDS
 
 // NewPostgresDB connects to chosen postgreSQL database
 // and returns interaction interface of the database
-func InitPostgresDB() (*sqlx.DB, *PostgreSQLTables, error) {
-	cfg, err := initPostgresConfig()
+func InitPostgresDB() (*sqlx.DB, error) {
+	cfg, err := InitPostgresConfig()
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't init postgresql: %w", err)
+		return nil, fmt.Errorf("can't init postgresql: %w", err)
 	}
 
 	dbInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
@@ -62,7 +87,7 @@ func InitPostgresDB() (*sqlx.DB, *PostgreSQLTables, error) {
 
 	db, err := sqlx.Open("postgres", dbInfo)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	db.SetMaxIdleConns(maxIdleConns)
 	db.SetMaxOpenConns(maxOpenConns)
@@ -72,52 +97,10 @@ func InitPostgresDB() (*sqlx.DB, *PostgreSQLTables, error) {
 		errClose := db.Close()
 		if errClose != nil {
 			// TODO: change %w and %s (double wrap only in go1.20+)
-			return nil, nil, fmt.Errorf("can't close postgresql (%w) after failed ping: %s", errClose, err.Error())
+			return nil, fmt.Errorf("can't close postgresql (%w) after failed ping: %s", errClose, err.Error())
 		}
-		return nil, nil, err
+		return nil, err
 	}
 
-	return db, &PostgreSQLTables{}, nil
-}
-
-type PostgreSQLTables struct{}
-
-func (pt *PostgreSQLTables) Users() string {
-	return "Users"
-}
-
-func (pt *PostgreSQLTables) Tracks() string {
-	return "Tracks"
-}
-
-func (pt *PostgreSQLTables) Artists() string {
-	return "Artists"
-}
-
-func (pt *PostgreSQLTables) Albums() string {
-	return "Albums"
-}
-
-func (pt *PostgreSQLTables) Listens() string {
-	return "Listens"
-}
-
-func (pt *PostgreSQLTables) ArtistsAlbums() string {
-	return "Artists_Albums"
-}
-
-func (pt *PostgreSQLTables) ArtistsTracks() string {
-	return "Artists_Tracks"
-}
-
-func (pt *PostgreSQLTables) LikedAlbums() string {
-	return "Liked_albums"
-}
-
-func (pt *PostgreSQLTables) LikedArtists() string {
-	return "Liked_artists"
-}
-
-func (pt *PostgreSQLTables) LikedTracks() string {
-	return "Liked_tracks"
+	return db, nil
 }
