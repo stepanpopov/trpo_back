@@ -54,6 +54,6 @@ type trackDeleteResponse struct {
 }
 
 // Likes
-type trackLikeResponse struct {
+type trackSetLikeResponse struct {
 	Status string `json:"status"`
 }
