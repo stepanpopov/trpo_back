@@ -54,7 +54,7 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		commonHttp.ErrorResponseWithErrLogging(w, "user already exists", http.StatusBadRequest, h.logger, err)
 		return
 	} else if err != nil {
-		commonHttp.ErrorResponseWithErrLogging(w, "server failed to sign up user", http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, "server error", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -93,14 +93,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.services.LoginUser(userInput.Username, userInput.Password)
 	if err != nil {
-		var errNoSuchUser *models.NoSuchUserError
-		if errors.As(err, &errNoSuchUser) {
-			commonHttp.ErrorResponseWithErrLogging(w, "can't login user", http.StatusBadRequest, h.logger, err)
-			return
-		} else {
-			commonHttp.ErrorResponseWithErrLogging(w, "server failed to login user", http.StatusInternalServerError, h.logger, err)
-			return
-		}
+		commonHttp.ErrorResponseWithErrLogging(w, "can't login user", http.StatusBadRequest, h.logger, err)
+		return
 	}
 
 	h.logger.Infof("login with token: %s", token)
