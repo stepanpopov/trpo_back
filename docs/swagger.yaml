@@ -30,7 +30,7 @@ definitions:
     type: object
   http.artistCreateInput:
     properties:
-      cover:
+      avatar:
         type: string
       name:
         type: string
@@ -70,8 +70,6 @@ definitions:
   http.trackCreateInput:
     properties:
       albumID:
-        type: integer
-      albumPosition:
         type: integer
       artistsID:
         items:
@@ -142,8 +140,6 @@ definitions:
     properties:
       albumID:
         type: integer
-      albumPosition:
-        type: integer
       artists:
         items:
           $ref: '#/definitions/models.ArtistTransfer'
@@ -152,8 +148,6 @@ definitions:
         type: string
       id:
         type: integer
-      listens:
-        type: integer
       name:
         type: string
       record:
@@ -161,6 +155,8 @@ definitions:
     type: object
   models.User:
     properties:
+      avatar:
+        type: string
       birthDate:
         $ref: '#/definitions/models.Date'
       email:
@@ -210,7 +206,7 @@ paths:
       - application/json
       description: Create new album by sent object
       parameters:
-      - description: Album info
+      - description: album info
         in: body
         name: album
         required: true
@@ -224,15 +220,7 @@ paths:
           schema:
             $ref: '#/definitions/http.albumCreateResponse'
         "400":
-          description: Incorrect input
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
-          description: User unathorized
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: User hasn't rights
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -256,14 +244,6 @@ paths:
           description: Client error
           schema:
             $ref: '#/definitions/http.Error'
-        "401":
-          description: User unathorized
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: User hasn't rights
-          schema:
-            $ref: '#/definitions/http.Error'
         "500":
           description: Server error
           schema:
@@ -281,11 +261,7 @@ paths:
           schema:
             $ref: '#/definitions/models.AlbumTransfer'
         "400":
-          description: Incorrect input
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
-          description: User unathorized
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -308,7 +284,7 @@ paths:
               $ref: '#/definitions/models.TrackTransfer'
             type: array
         "400":
-          description: Bad request
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -357,11 +333,7 @@ paths:
           schema:
             $ref: '#/definitions/http.artistCreateResponse'
         "400":
-          description: Incorrect body
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
-          description: User unathorized
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -382,15 +354,7 @@ paths:
           schema:
             $ref: '#/definitions/http.artistDeleteResponse'
         "400":
-          description: Incorrect body
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
-          description: User unathorized
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: User hasn't rights
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -410,7 +374,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ArtistTransfer'
         "400":
-          description: Incorrect body
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -456,7 +420,7 @@ paths:
               $ref: '#/definitions/models.TrackTransfer'
             type: array
         "400":
-          description: Incorrect body
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -588,15 +552,7 @@ paths:
           schema:
             $ref: '#/definitions/http.trackCreateResponse'
         "400":
-          description: Incorrect body
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
-          description: User unathorized
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: User hasn't rights
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -617,15 +573,7 @@ paths:
           schema:
             $ref: '#/definitions/http.trackDeleteResponse'
         "400":
-          description: No such track
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
-          description: User unathorized
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: User hasn't rights
+          description: Client error
           schema:
             $ref: '#/definitions/http.Error'
         "500":
@@ -648,10 +596,6 @@ paths:
           description: Client error
           schema:
             $ref: '#/definitions/http.Error'
-        "401":
-          description: User unathorized
-          schema:
-            $ref: '#/definitions/http.Error'
         "500":
           description: Server error
           schema:
@@ -671,10 +615,6 @@ paths:
             items:
               $ref: '#/definitions/models.TrackTransfer'
             type: array
-        "400":
-          description: Incorrect input
-          schema:
-            $ref: '#/definitions/http.Error'
         "500":
           description: Server error
           schema:
@@ -696,81 +636,11 @@ paths:
           description: Client error
           schema:
             $ref: '#/definitions/http.Error'
-        "401":
-          description: Unauthorized user
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: Forbidden user
-          schema:
-            $ref: '#/definitions/http.Error'
         "500":
           description: Server error
           schema:
             $ref: '#/definitions/http.Error'
       summary: Get User
-      tags:
-      - User
-  /api/users/{userID}/albums:
-    get:
-      description: Get user's favorite albums
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Albums got
-          schema:
-            items:
-              $ref: '#/definitions/models.AlbumTransfer'
-            type: array
-        "400":
-          description: Incorrect input
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
-          description: Unauthorized user
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: Forbidden user
-          schema:
-            $ref: '#/definitions/http.Error'
-        "500":
-          description: Server error
-          schema:
-            $ref: '#/definitions/http.Error'
-      summary: Favorite Albums
-      tags:
-      - User
-  /api/users/{userID}/artists:
-    get:
-      description: Get user's favorite artists
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Artists got
-          schema:
-            items:
-              $ref: '#/definitions/models.ArtistTransfer'
-            type: array
-        "400":
-          description: Incorrect input
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
-          description: Unauthorized user
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: Forbidden user
-          schema:
-            $ref: '#/definitions/http.Error'
-        "500":
-          description: Server error
-          schema:
-            $ref: '#/definitions/http.Error'
-      summary: Favorite Artists
       tags:
       - User
   /api/users/{userID}/avatar:
@@ -779,7 +649,7 @@ paths:
       - multipart/form-data
       description: Update user avatar
       parameters:
-      - description: Avatar file
+      - description: avatar file
         in: formData
         name: avatar
         required: true
@@ -796,37 +666,6 @@ paths:
           schema:
             $ref: '#/definitions/http.Error'
         "401":
-          description: User Unathorized
-          schema:
-            $ref: '#/definitions/http.Error'
-        "403":
-          description: User hasn't rights
-          schema:
-            $ref: '#/definitions/http.Error'
-        "500":
-          description: Server error
-          schema:
-            $ref: '#/definitions/http.Error'
-      summary: Upload Avatar
-      tags:
-      - User
-  /api/users/{userID}/tracks:
-    get:
-      description: Get ser's avorite racks
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Tracks got
-          schema:
-            items:
-              $ref: '#/definitions/models.TrackTransfer'
-            type: array
-        "400":
-          description: Incorrect input
-          schema:
-            $ref: '#/definitions/http.Error'
-        "401":
           description: Unauthorized user
           schema:
             $ref: '#/definitions/http.Error'
@@ -838,7 +677,7 @@ paths:
           description: Server error
           schema:
             $ref: '#/definitions/http.Error'
-      summary: Favorite Tracks
+      summary: Upload Avatar
       tags:
       - User
 swagger: "2.0"

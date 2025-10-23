@@ -34,7 +34,7 @@ const docTemplate = `{
                 "summary": "Create Album",
                 "parameters": [
                     {
-                        "description": "Album info",
+                        "description": "album info",
                         "name": "album",
                         "in": "body",
                         "required": true,
@@ -51,19 +51,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Incorrect input",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "User unathorized",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "User hasn't rights",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -124,13 +112,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Incorrect input",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "User unathorized",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -165,18 +147,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/http.Error"
                         }
                     },
-                    "401": {
-                        "description": "User unathorized",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "User hasn't rights",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
                     "500": {
                         "description": "Server error",
                         "schema": {
@@ -207,7 +177,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad request",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -253,13 +223,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Incorrect body",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "User unathorized",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -320,7 +284,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Incorrect body",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -350,19 +314,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Incorrect body",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "User unathorized",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "User hasn't rights",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -432,7 +384,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Incorrect body",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -605,19 +557,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Incorrect body",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "User unathorized",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "User hasn't rights",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -649,12 +589,6 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/models.TrackTransfer"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "Incorrect input",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
                         }
                     },
                     "500": {
@@ -689,12 +623,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/http.Error"
                         }
                     },
-                    "401": {
-                        "description": "User unathorized",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
                     "500": {
                         "description": "Server error",
                         "schema": {
@@ -720,19 +648,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "No such track",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "User unathorized",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "User hasn't rights",
+                        "description": "Client error",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -769,112 +685,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/http.Error"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized user",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden user",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Server error",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/{userID}/albums": {
-            "get": {
-                "description": "Get user's favorite albums",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Favorite Albums",
-                "responses": {
-                    "200": {
-                        "description": "Albums got",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.AlbumTransfer"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Incorrect input",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized user",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden user",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Server error",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/{userID}/artists": {
-            "get": {
-                "description": "Get user's favorite artists",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Favorite Artists",
-                "responses": {
-                    "200": {
-                        "description": "Artists got",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.ArtistTransfer"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Incorrect input",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized user",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden user",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
                     "500": {
                         "description": "Server error",
                         "schema": {
@@ -900,7 +710,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Avatar file",
+                        "description": "avatar file",
                         "name": "avatar",
                         "in": "formData",
                         "required": true
@@ -915,53 +725,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid form data",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "401": {
-                        "description": "User Unathorized",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "User hasn't rights",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Server error",
-                        "schema": {
-                            "$ref": "#/definitions/http.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users/{userID}/tracks": {
-            "get": {
-                "description": "Get ser's avorite racks",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Favorite Tracks",
-                "responses": {
-                    "200": {
-                        "description": "Tracks got",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.TrackTransfer"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Incorrect input",
                         "schema": {
                             "$ref": "#/definitions/http.Error"
                         }
@@ -1036,7 +799,7 @@ const docTemplate = `{
         "http.artistCreateInput": {
             "type": "object",
             "properties": {
-                "cover": {
+                "avatar": {
                     "type": "string"
                 },
                 "name": {
@@ -1099,9 +862,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "albumID": {
-                    "type": "integer"
-                },
-                "albumPosition": {
                     "type": "integer"
                 },
                 "artistsID": {
@@ -1209,9 +969,6 @@ const docTemplate = `{
                 "albumID": {
                     "type": "integer"
                 },
-                "albumPosition": {
-                    "type": "integer"
-                },
                 "artists": {
                     "type": "array",
                     "items": {
@@ -1222,9 +979,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
-                },
-                "listens": {
                     "type": "integer"
                 },
                 "name": {
@@ -1238,6 +992,9 @@ const docTemplate = `{
         "models.User": {
             "type": "object",
             "properties": {
+                "avatar": {
+                    "type": "string"
+                },
                 "birthDate": {
                     "$ref": "#/definitions/models.Date"
                 },
