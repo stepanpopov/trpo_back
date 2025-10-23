@@ -89,13 +89,12 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	artist, err := h.artistServices.GetByID(artistID)
+	var errNoSuchArtist *models.NoSuchArtistError
+	if errors.As(err, &errNoSuchArtist) {
+		commonHttp.ErrorResponseWithErrLogging(w, "no such artist", http.StatusBadRequest, h.logger, err)
+		return
+	}
 	if err != nil {
-		var errNoSuchArtist *models.NoSuchArtistError
-		if errors.As(err, &errNoSuchArtist) {
-			commonHttp.ErrorResponseWithErrLogging(w, "no such artist", http.StatusBadRequest, h.logger, err)
-			return
-		}
-
 		commonHttp.ErrorResponseWithErrLogging(w, "can't get artist", http.StatusInternalServerError, h.logger, err)
 		return
 	}
@@ -103,6 +102,11 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	artistResponse := models.ArtistTransferFromEntry(*artist)
 
 	commonHttp.SuccessResponse(w, artistResponse, h.logger)
+}
+
+// swaggermock
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	// ...
 }
 
 // @Summary		Delete Artist
@@ -130,14 +134,13 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.artistServices.Delete(artistID, user.ID)
+	var errNoSuchArtist *models.NoSuchArtistError
+	var errForbiddenUser *models.ForbiddenUserError
 	if err != nil {
-		var errNoSuchArtist *models.NoSuchArtistError
 		if errors.As(err, &errNoSuchArtist) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no such artist", http.StatusBadRequest, h.logger, err)
 			return
 		}
-
-		var errForbiddenUser *models.ForbiddenUserError
 		if errors.As(err, &errForbiddenUser) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no rights to delete artist", http.StatusForbidden, h.logger, err)
 			return
@@ -162,7 +165,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Feed(w http.ResponseWriter, r *http.Request) {
 	artists, err := h.artistServices.GetFeed()
 	if err != nil {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get artists", http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, "can't get album", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -186,23 +189,25 @@ func (h *Handler) Like(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notExisted, err := h.artistServices.SetLike(artistID, user.ID)
+	notExists, err := h.artistServices.SetLike(artistID, user.ID)
 	if err != nil {
 		var errNoSuchArtist *models.NoSuchArtistError
 		if errors.As(err, &errNoSuchArtist) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no such artist", http.StatusBadRequest, h.logger, err)
 			return
+		} else {
+			commonHttp.ErrorResponseWithErrLogging(w, "can't set like", http.StatusInternalServerError, h.logger, err)
+			return
 		}
-
-		commonHttp.ErrorResponseWithErrLogging(w, "can't set like", http.StatusInternalServerError, h.logger, err)
-		return
 	}
 
-	alr := artistLikeResponse{Status: "ok"}
-	if !notExisted {
-		alr.Status = "already liked"
+	if notExists {
+		resp := artistLikeResponse{Status: "ok"}
+		commonHttp.SuccessResponse(w, resp, h.logger)
+	} else {
+		resp := artistLikeResponse{Status: "exists"}
+		commonHttp.SuccessResponse(w, resp, h.logger)
 	}
-	commonHttp.SuccessResponse(w, alr, h.logger)
 }
 
 // swaggermock
@@ -226,15 +231,17 @@ func (h *Handler) UnLike(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &errNoSuchArtist) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no such artist", http.StatusBadRequest, h.logger, err)
 			return
+		} else {
+			commonHttp.ErrorResponseWithErrLogging(w, "can't remove like", http.StatusInternalServerError, h.logger, err)
+			return
 		}
-
-		commonHttp.ErrorResponseWithErrLogging(w, "can't remove like", http.StatusInternalServerError, h.logger, err)
-		return
 	}
 
-	alr := artistLikeResponse{Status: "ok"}
-	if !notExisted {
-		alr.Status = "wasn't liked"
+	if notExisted {
+		resp := artistLikeResponse{Status: "ok"}
+		commonHttp.SuccessResponse(w, resp, h.logger)
+	} else {
+		resp := artistLikeResponse{Status: "already disliked"}
+		commonHttp.SuccessResponse(w, resp, h.logger)
 	}
-	commonHttp.SuccessResponse(w, alr, h.logger)
 }
