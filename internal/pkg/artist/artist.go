@@ -8,6 +8,7 @@ import "github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 type Usecase interface {
 	Create(artist models.Artist) (uint32, error)
 	GetByID(artistID uint32) (*models.Artist, error)
+	// Change(artist models.Artist) error
 	Delete(artistID uint32, userID uint32) error
 	GetFeed() ([]models.Artist, error)
 	GetByAlbum(albumID uint32) ([]models.Artist, error)
@@ -25,6 +26,9 @@ type Repository interface {
 
 	// GetByID returns one entry of artist in DB with given ID
 	GetByID(artistID uint32) (*models.Artist, error)
+
+	// Update replaces one entry of artist with given model's ID by given model
+	Update(artist models.Artist) error
 
 	// DeleteByID deletes one entry of artist with given ID
 	DeleteByID(artistID uint32) error
@@ -44,7 +48,7 @@ type Repository interface {
 	InsertLike(artistID, userID uint32) (bool, error)
 
 	DeleteLike(artistID, userID uint32) (bool, error)
-
+	
 	// GetLikes returns total likes related with artist with given ID
 	// GetLikes(artistID uint 32) (uint32, error)
 

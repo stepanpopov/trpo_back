@@ -37,10 +37,10 @@ func NewHandler(uu user.Usecase, tu track.Usecase, alu album.Usecase, aru artist
 // @Description	Get user with chosen ID
 // @Produce		json
 // @Success		200		{object}	models.UserTransfer "User got"
-// @Failure		400		{object}	http.Error			"Client error"
-// @Failure     401    	{object}  	http.Error  		"Unauthorized user"
-// @Failure     403    	{object}  	http.Error  		"Forbidden user"
-// @Failure     500    	{object}  	http.Error  		"Server error"
+// @Failure		400		{object}	http.Error	"Client error"
+// @Failure     401    	{object}  	http.Error  "Unauthorized user"
+// @Failure     403    	{object}  	http.Error  "Forbidden user"
+// @Failure     500    	{object}  	http.Error  "Server error"
 // @Router	    /api/users/{userID}/ [get]
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	user, err := h.checkUserAuthAndResponce(w, r)
@@ -99,16 +99,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	commonHttp.SuccessResponse(w, uuar, h.logger)
 }
 
-// @Summary      Favorite Tracks
-// @Tags         User
-// @Description  Get ser's avorite racks
-// @Produce      application/json
-// @Success      200    {object}  	[]models.TrackTransfer 	"Tracks got"
-// @Failure		 400	{object}	http.Error				"Incorrect input"
-// @Failure      401    {object}  	http.Error  			"Unauthorized user"
-// @Failure      403    {object}  	http.Error  			"Forbidden user"
-// @Failure      500    {object}  	http.Error  			"Server error"
-// @Router       /api/users/{userID}/tracks [get]
+// swaggermock
 func (h *Handler) GetFavouriteTracks(w http.ResponseWriter, r *http.Request) {
 	user, err := h.checkUserAuthAndResponce(w, r)
 	if err != nil {
@@ -130,16 +121,7 @@ func (h *Handler) GetFavouriteTracks(w http.ResponseWriter, r *http.Request) {
 	commonHttp.SuccessResponse(w, tt, h.logger)
 }
 
-// @Summary      Favorite Albums
-// @Tags         User
-// @Description  Get user's favorite albums
-// @Produce      application/json
-// @Success      200    {object}  	[]models.AlbumTransfer 	"Albums got"
-// @Failure		 400	{object}	http.Error				"Incorrect input"
-// @Failure      401    {object}  	http.Error  			"Unauthorized user"
-// @Failure      403    {object}  	http.Error  			"Forbidden user"
-// @Failure      500    {object}  	http.Error  			"Server error"
-// @Router       /api/users/{userID}/albums [get]
+// swaggermock
 func (h *Handler) GetFavouriteAlbums(w http.ResponseWriter, r *http.Request) {
 	user, err := h.checkUserAuthAndResponce(w, r)
 	if err != nil {
@@ -152,25 +134,16 @@ func (h *Handler) GetFavouriteAlbums(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at, err := models.AlbumTransferFromQuery(favAlbums, h.artistServices.GetByAlbum)
+	resp, err := models.AlbumTransferFromQuery(favAlbums, h.artistServices.GetByAlbum)
 	if err != nil {
 		commonHttp.ErrorResponseWithErrLogging(w, "error while getting favourite albums", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
-	commonHttp.SuccessResponse(w, at, h.logger)
+	commonHttp.SuccessResponse(w, resp, h.logger)
 }
 
-// @Summary      Favorite Artists
-// @Tags         User
-// @Description  Get user's favorite artists
-// @Produce      application/json
-// @Success      200    {object}  	[]models.ArtistTransfer "Artists got"
-// @Failure		 400	{object}	http.Error				"Incorrect input"
-// @Failure      401    {object}  	http.Error  			"Unauthorized user"
-// @Failure      403    {object}  	http.Error  			"Forbidden user"
-// @Failure      500    {object}  	http.Error  			"Server error"
-// @Router       /api/users/{userID}/artists [get]
+// swaggermock
 func (h *Handler) GetFavouriteArtists(w http.ResponseWriter, r *http.Request) {
 	user, err := h.checkUserAuthAndResponce(w, r)
 	if err != nil {
@@ -183,9 +156,9 @@ func (h *Handler) GetFavouriteArtists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at := models.ArtistTransferFromQuery(favArtists)
+	artistsTransfer := models.ArtistTransferFromQuery(favArtists)
 
-	commonHttp.SuccessResponse(w, at, h.logger)
+	commonHttp.SuccessResponse(w, artistsTransfer, h.logger)
 }
 
 // help func
@@ -195,7 +168,7 @@ func (h *Handler) checkUserAuthAndResponce(w http.ResponseWriter, r *http.Reques
 	user, err := commonHttp.GetUserFromRequest(r)
 	if err != nil {
 		h.logger.Infof("unathorized user: %v", err)
-		commonHttp.ErrorResponse(w, "unathorized", http.StatusUnauthorized, h.logger)
+		commonHttp.ErrorResponse(w, "invalid token", http.StatusUnauthorized, h.logger)
 		return nil, authFailedError
 	}
 
@@ -208,7 +181,7 @@ func (h *Handler) checkUserAuthAndResponce(w http.ResponseWriter, r *http.Reques
 
 	if urlID != user.ID {
 		h.logger.Infof("forbidden user with id #%d", urlID)
-		commonHttp.ErrorResponse(w, "user has no rights", http.StatusForbidden, h.logger)
+		commonHttp.ErrorResponse(w, "invalid user", http.StatusForbidden, h.logger)
 		return nil, authFailedError
 	}
 
