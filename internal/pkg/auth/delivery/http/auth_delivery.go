@@ -29,14 +29,16 @@ func NewHandler(au auth.Usecase, l logger.Logger) *Handler {
 // @Description	Create account
 // @Accept		json
 // @Produce		json
-// @Param		user	body		models.User	true	"User info"
-// @Success		200		{object}	signUpResponse		"User created"
-// @Failure		400		{object}	http.Error			"Incorrect input"
-// @Failure		500		{object}	http.Error			"Server error"
+// @Param		user	body		models.User		true	"user info"
+// @Success		200		{object}	signUpResponse	"User created"
+// @Failure		400		{object}	http.Error	"Incorrect input"
+// @Failure		500		{object}	http.Error	"Server error"
 // @Router		/api/auth/signup [post]
 func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&user); err != nil {
 		commonHttp.ErrorResponseWithErrLogging(w, "incorrect input body", http.StatusBadRequest, h.logger, err)
 		return
 	}
@@ -47,14 +49,12 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := h.services.SignUpUser(user)
-	if err != nil {
-		var errUserAlreadyExists *models.UserAlreadyExistsError
-		if errors.As(err, &errUserAlreadyExists) {
-			commonHttp.ErrorResponseWithErrLogging(w, "user already exists", http.StatusBadRequest, h.logger, err)
-			return
-		}
-
-		commonHttp.ErrorResponseWithErrLogging(w, "server failed to sign up user", http.StatusInternalServerError, h.logger, err)
+	var errUserAlreadyExists *models.UserAlreadyExistsError
+	if errors.As(err, &errUserAlreadyExists) {
+		commonHttp.ErrorResponseWithErrLogging(w, "user already exists", http.StatusBadRequest, h.logger, err)
+		return
+	} else if err != nil {
+		commonHttp.ErrorResponseWithErrLogging(w, "server error", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -77,7 +77,9 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 // @Router		/api/auth/login [post]
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var userInput loginInput
-	if err := json.NewDecoder(r.Body).Decode(&userInput); err != nil {
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&userInput); err != nil {
 		h.logger.Infof("incorrect json format: %s", err.Error())
 		commonHttp.ErrorResponse(w, "incorrect input body", http.StatusBadRequest, h.logger)
 		return
@@ -93,7 +95,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var errNoSuchUser *models.NoSuchUserError
 		if errors.As(err, &errNoSuchUser) {
-			commonHttp.ErrorResponseWithErrLogging(w, "can't login user", http.StatusBadRequest, h.logger, err)
+			commonHttp.ErrorResponseWithErrLogging(w, "no such user", http.StatusBadRequest, h.logger, err)
+			return
+		}
+
+		var errIncorrectPassword *models.IncorrectPasswordError
+		if errors.As(err, &errIncorrectPassword) {
+			commonHttp.ErrorResponseWithErrLogging(w, "incorrect password", http.StatusBadRequest, h.logger, err)
 			return
 		}
 
@@ -121,9 +129,10 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	user, err := commonHttp.GetUserFromRequest(r)
 	if err != nil {
 		h.logger.Infof("failed to logout: %s", err.Error())
-		commonHttp.ErrorResponse(w, "invalid token", http.StatusBadRequest, h.logger)
+		commonHttp.ErrorResponse(w, "invalid token", http.StatusUnauthorized, h.logger)
 		return
 	}
+	h.logger.Infof("userID for logout: %d", user.ID)
 
 	if err = h.services.IncreaseUserVersion(user.ID); err != nil { // userVersion UP
 		h.logger.Errorf("failed to logout: %s", err.Error())
@@ -134,4 +143,40 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	lr := logoutResponse{Status: "ok"}
 
 	commonHttp.SuccessResponse(w, lr, h.logger)
+}
+
+func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	user, err := commonHttp.GetUserFromRequest(r)
+	if err != nil {
+		h.logger.Infof("failed to change password: %s", err.Error())
+		commonHttp.ErrorResponse(w, "invalid token", http.StatusUnauthorized, h.logger)
+		return
+	}
+
+	var passwordsInput changePassInput
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&passwordsInput); err != nil {
+		h.logger.Infof("incorrect json format: %s", err.Error())
+		commonHttp.ErrorResponse(w, "incorrect input body", http.StatusBadRequest, h.logger)
+		return
+	}
+
+	if _, err := h.services.GetUserByCreds(user.Username, passwordsInput.OldPassword); err != nil {
+		var errIncorrectPassword *models.IncorrectPasswordError
+		if errors.As(err, &errIncorrectPassword) {
+			commonHttp.ErrorResponseWithErrLogging(w, "incorrect password", http.StatusBadRequest, h.logger, err)
+			return
+		}
+
+		commonHttp.ErrorResponseWithErrLogging(w, "server failed to get user", http.StatusInternalServerError, h.logger, err)
+		return
+	}
+
+	if err := h.services.ChangePassword(user.ID, passwordsInput.NewPassword); err != nil {
+		commonHttp.ErrorResponseWithErrLogging(w, "server failed to change password", http.StatusInternalServerError, h.logger, err)
+		return
+	}
+
+	resp := changePassResponse{Status: "ok"}
+	commonHttp.SuccessResponse(w, resp, h.logger)
 }

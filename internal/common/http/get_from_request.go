@@ -17,7 +17,7 @@ const (
 	UserIdUrlParam   = "userID"
 )
 
-// GetUserFromRequest returns error if authentication failed
+// GetUserFromAuthorization returns error if authentication failed
 func GetUserFromRequest(r *http.Request) (*models.User, error) {
 	user, ok := r.Context().Value(models.ContextKeyUserType{}).(*models.User)
 	if !ok {
