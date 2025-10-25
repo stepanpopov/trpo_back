@@ -50,11 +50,3 @@ type NoSuchUserError struct{}
 func (e *NoSuchUserError) Error() string {
 	return "no such user"
 }
-
-type IncorrectPasswordError struct{
-	UserId uint32
-}
-
-func (e *IncorrectPasswordError) Error() string {
-	return fmt.Sprintf("incorrect password for user #%d", e.UserId)
-}
