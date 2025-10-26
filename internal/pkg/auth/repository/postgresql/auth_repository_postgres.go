@@ -40,11 +40,9 @@ func (p *PostgreSQL) GetUserByAuthData(userID, userVersion uint32) (*models.User
 	err := row.Scan(&u.ID, &u.Version, &u.Username, &u.Email, &u.Password, &u.Salt,
 		&u.FirstName, &u.LastName, &u.Sex, &u.BirthDate.Time, &u.AvatarSrc)
 
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchUserError{UserID: userID}, err)
-		}
-
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("(repo) %w: %v", &models.NoSuchUserError{}, err)
+	} else if err != nil {
 		return nil, fmt.Errorf("(repo) failed to scan from query: %w", err)
 	}
 
@@ -62,9 +60,28 @@ func (p *PostgreSQL) IncreaseUserVersion(userID uint32) error {
 
 	err := row.Scan(&userID)
 
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("(repo) %w: %v", &models.NoSuchUserError{}, err)
+	} else if err != nil {
+		return fmt.Errorf("(repo) failed to scan from query: %w", err)
+	}
+
+	return nil
+}
+
+func (p *PostgreSQL) UpdatePassword(userID uint32, passwordHash, salt string) error {
+	query := fmt.Sprintf(
+		`UPDATE %s
+		SET password_hash = $1,
+			salt = $2
+		WHERE id = $3
+		RETURNING id;`,
+		p.tables.Users())
+	row := p.db.QueryRow(query, passwordHash, salt, userID)
+
+	if err := row.Scan(&userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("(repo) %w: %w", &models.NoSuchUserError{UserID: userID}, err)
+			return fmt.Errorf("(repo) %w: %v", &models.NoSuchUserError{}, err)
 		}
 
 		return fmt.Errorf("(repo) failed to scan from query: %w", err)
