@@ -46,7 +46,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var tci trackCreateInput
-	if err := json.NewDecoder(r.Body).Decode(&tci); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&tci); err != nil {
 		commonHttp.ErrorResponseWithErrLogging(w, "incorrect input body", http.StatusBadRequest, h.logger, err)
 		return
 	}
@@ -60,8 +61,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	track := tci.ToTrack()
 
 	trackID, err := h.trackServices.Create(track, tci.ArtistsID, user.ID)
+	var errForbiddenUser *models.ForbiddenUserError
 	if err != nil {
-		var errForbiddenUser *models.ForbiddenUserError
 		if errors.As(err, &errForbiddenUser) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no rights to create track", http.StatusForbidden, h.logger, err)
 			return
@@ -82,7 +83,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 // @Produce		json
 // @Success		200		{object}	models.TrackTransfer "Track got"
 // @Failure		400		{object}	http.Error			 "Client error"
-// @Failure		401		{object}	http.Error  		 "User unathorized"
 // @Failure		500		{object}	http.Error			 "Server error"
 // @Router		/api/tracks/{trackID}/ [get]
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
@@ -93,31 +93,29 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := commonHttp.GetUserFromRequest(r)
-	if err != nil {
-		commonHttp.ErrorResponseWithErrLogging(w, "unathorized", http.StatusUnauthorized, h.logger, err)
+	track, err := h.trackServices.GetByID(uint32(trackID))
+	var errNoSuchTrack *models.NoSuchTrackError
+	if errors.As(err, &errNoSuchTrack) {
+		commonHttp.ErrorResponseWithErrLogging(w, "no such track", http.StatusBadRequest, h.logger, err)
 		return
 	}
-
-	track, err := h.trackServices.GetByID(trackID)
 	if err != nil {
-		var errNoSuchTrack *models.NoSuchTrackError
-		if errors.As(err, &errNoSuchTrack) {
-			commonHttp.ErrorResponseWithErrLogging(w, "no such track", http.StatusBadRequest, h.logger, err)
-			return
-		}
-
 		commonHttp.ErrorResponseWithErrLogging(w, "can't get track", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
-	tt, err := models.TrackTransferFromEntry(*track, user, h.trackServices.IsLiked, h.artistServices.GetByTrack)
+	tt, err := models.TrackTransferFromEntry(*track, h.artistServices.GetByTrack)
 	if err != nil {
 		commonHttp.ErrorResponseWithErrLogging(w, "can't get track", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	commonHttp.SuccessResponse(w, tt, h.logger)
+}
+
+// swaggermock
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	// ...
 }
 
 // @Summary		Delete Track
@@ -145,14 +143,13 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.trackServices.Delete(trackID, user.ID)
+	var errNoSuchTrack *models.NoSuchTrackError
+	var errForbiddenUser *models.ForbiddenUserError
 	if err != nil {
-		var errForbiddenUser *models.ForbiddenUserError
 		if errors.As(err, &errForbiddenUser) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no rights to delete track", http.StatusForbidden, h.logger, err)
 			return
 		}
-
-		var errNoSuchTrack *models.NoSuchTrackError
 		if errors.As(err, &errNoSuchTrack) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no such track", http.StatusBadRequest, h.logger, err)
 			return
@@ -184,22 +181,19 @@ func (h *Handler) GetByArtist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tracks, err := h.trackServices.GetByArtist(artistID)
+	var errNoSuchArtist *models.NoSuchArtistError
+	if errors.As(err, &errNoSuchArtist) {
+		commonHttp.ErrorResponseWithErrLogging(w, "no such artist", http.StatusBadRequest, h.logger, err)
+		return
+	}
 	if err != nil {
-		var errNoSuchArtist *models.NoSuchArtistError
-		if errors.As(err, &errNoSuchArtist) {
-			commonHttp.ErrorResponseWithErrLogging(w, "no such artist", http.StatusBadRequest, h.logger, err)
-			return
-		}
-
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, "error while getting artist tracks", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
-	user, _ := commonHttp.GetUserFromRequest(r)
-
-	tt, err := models.TrackTransferFromQuery(tracks, user, h.trackServices.IsLiked, h.artistServices.GetByTrack)
+	tt, err := models.TrackTransferFromQuery(tracks, h.artistServices.GetByTrack)
 	if err != nil {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, "error while getting artist tracks", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -211,7 +205,7 @@ func (h *Handler) GetByArtist(w http.ResponseWriter, r *http.Request) {
 // @Description	All tracks of album with chosen ID
 // @Produce		json
 // @Success		200		{object}	[]models.TrackTransfer "Show tracks"
-// @Failure		400		{object}	http.Error			   "Bad request"
+// @Failure		400		{object}	http.Error			   "Client error"
 // @Failure		500		{object}	http.Error			   "Server error"
 // @Router		/api/albums/{albumID}/tracks [get]
 func (h *Handler) GetByAlbum(w http.ResponseWriter, r *http.Request) {
@@ -223,22 +217,19 @@ func (h *Handler) GetByAlbum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tracks, err := h.trackServices.GetByAlbum(albumID)
+	var errNoSuchAlbum *models.NoSuchAlbumError
+	if errors.As(err, &errNoSuchAlbum) {
+		commonHttp.ErrorResponseWithErrLogging(w, "no such album", http.StatusBadRequest, h.logger, err)
+		return
+	}
 	if err != nil {
-		var errNoSuchAlbum *models.NoSuchAlbumError
-		if errors.As(err, &errNoSuchAlbum) {
-			commonHttp.ErrorResponseWithErrLogging(w, "no such album", http.StatusBadRequest, h.logger, err)
-			return
-		}
-
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, "error while getting album tracks", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
-	user, _ := commonHttp.GetUserFromRequest(r)
-
-	tt, err := models.TrackTransferFromQuery(tracks, user, h.trackServices.IsLiked, h.artistServices.GetByTrack)
+	tt, err := models.TrackTransferFromQuery(tracks, h.artistServices.GetByTrack)
 	if err != nil {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, "error while getting artist tracks", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -255,30 +246,20 @@ func (h *Handler) GetByAlbum(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Feed(w http.ResponseWriter, r *http.Request) {
 	tracks, err := h.trackServices.GetFeed()
 	if err != nil {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, "error while getting tracks", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
-	user, _ := commonHttp.GetUserFromRequest(r)
-
-	tt, err := models.TrackTransferFromQuery(tracks, user, h.trackServices.IsLiked, h.artistServices.GetByTrack)
+	tt, err := models.TrackTransferFromQuery(tracks, h.artistServices.GetByTrack)
 	if err != nil {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, "error while getting tracks", http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	commonHttp.SuccessResponse(w, tt, h.logger)
 }
 
-// @Summary		Set like
-// @Tags		Track
-// @Description	Set like by user to chosen track (add to favorite)
-// @Produce		json
-// @Success		200		{object}	trackLikeResponse	"Like set"
-// @Failure		400		{object}	http.Error			"Client error"
-// @Failure		401		{object}	http.Error  		"User unathorized"
-// @Failure		500		{object}	http.Error			"Server error"
-// @Router		/api/tracks/{trackID}/like [post]
+// swaggermock
 func (h *Handler) Like(w http.ResponseWriter, r *http.Request) {
 	trackID, err := commonHttp.GetTrackIDFromRequest(r)
 	if err != nil {
@@ -293,34 +274,28 @@ func (h *Handler) Like(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notExisted, err := h.trackServices.SetLike(trackID, user.ID)
+	notExists, err := h.trackServices.SetLike(trackID, user.ID)
 	if err != nil {
 		var errNoSuchTrack *models.NoSuchTrackError
 		if errors.As(err, &errNoSuchTrack) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no such track", http.StatusBadRequest, h.logger, err)
 			return
+		} else {
+			commonHttp.ErrorResponseWithErrLogging(w, "error while setting like", http.StatusInternalServerError, h.logger, err)
+			return
 		}
-
-		commonHttp.ErrorResponseWithErrLogging(w, "can't set like", http.StatusInternalServerError, h.logger, err)
-		return
 	}
 
-	tlr := trackLikeResponse{Status: "ok"}
-	if !notExisted {
-		tlr.Status = "already liked"
+	if notExists {
+		resp := trackLikeResponse{Status: "ok"}
+		commonHttp.SuccessResponse(w, resp, h.logger)
+	} else {
+		resp := trackLikeResponse{Status: "already liked"}
+		commonHttp.SuccessResponse(w, resp, h.logger)
 	}
-	commonHttp.SuccessResponse(w, tlr, h.logger)
 }
 
-// @Summary		Remove like
-// @Tags		Track
-// @Description	Remove like by user from chosen track (remove from favorite)
-// @Produce		json
-// @Success		200		{object}	trackLikeResponse	"Like removed"
-// @Failure		400		{object}	http.Error			"Client error"
-// @Failure		401		{object}	http.Error  		"User unathorized"
-// @Failure		500		{object}	http.Error			"Server error"
-// @Router		/api/tracks/{trackID}/unlike [post]
+// swaggermock
 func (h *Handler) UnLike(w http.ResponseWriter, r *http.Request) {
 	trackID, err := commonHttp.GetTrackIDFromRequest(r)
 	if err != nil {
@@ -341,15 +316,47 @@ func (h *Handler) UnLike(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &errNoSuchTrack) {
 			commonHttp.ErrorResponseWithErrLogging(w, "no such track", http.StatusBadRequest, h.logger, err)
 			return
+		} else {
+			commonHttp.ErrorResponseWithErrLogging(w, "error while removing like", http.StatusInternalServerError, h.logger, err)
+			return
 		}
+	}
 
-		commonHttp.ErrorResponseWithErrLogging(w, "can't remove like", http.StatusInternalServerError, h.logger, err)
+	if notExisted {
+		resp := trackLikeResponse{Status: "ok"}
+		commonHttp.SuccessResponse(w, resp, h.logger)
+	} else {
+		resp := trackLikeResponse{Status: "already disliked"}
+		commonHttp.SuccessResponse(w, resp, h.logger)
+	}
+}
+
+// swaggermock
+func (h *Handler) GetRecord(w http.ResponseWriter, r *http.Request) {
+	trackID, err := commonHttp.GetTrackIDFromRequest(r)
+	if err != nil {
+		h.logger.Infof("Get track by id: %v", err)
+		commonHttp.ErrorResponse(w, "invalid url parameter", http.StatusBadRequest, h.logger)
 		return
 	}
 
-	tlr := trackLikeResponse{Status: "ok"}
-	if !notExisted {
-		tlr.Status = "wasn't liked"
+	if _, err := commonHttp.GetUserFromRequest(r); err != nil {
+		commonHttp.ErrorResponseWithErrLogging(w, "unathorized", http.StatusUnauthorized, h.logger, err)
+		return
 	}
-	commonHttp.SuccessResponse(w, tlr, h.logger)
+
+	track, err := h.trackServices.GetByID(uint32(trackID))
+	if err != nil {
+		var errNoSuchTrack *models.NoSuchTrackError
+		if errors.As(err, &errNoSuchTrack) {
+			commonHttp.ErrorResponseWithErrLogging(w, "no such track", http.StatusBadRequest, h.logger, err)
+			return
+		}
+
+		commonHttp.ErrorResponseWithErrLogging(w, "can't get track", http.StatusInternalServerError, h.logger, err)
+		return
+	}
+
+	
+	http.ServeFile(w, r, "." + track.RecordSrc)
 }

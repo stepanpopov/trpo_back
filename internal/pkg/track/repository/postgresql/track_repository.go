@@ -28,11 +28,23 @@ func NewPostgreSQL(db *sqlx.DB, t track.Tables, l logger.Logger) *PostgreSQL {
 	}
 }
 
-func (p *PostgreSQL) Insert(track models.Track, artistsID []uint32) (uint32, error) {
+func (p *PostgreSQL) Insert(track models.Track, artistsID []uint32) (_ uint32, err error) {
 	tx, err := p.db.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("(repo) failed to begin transaction: %w", err)
 	}
+
+	defer func() { 
+		if err != nil { 
+			if errRollback := tx.Rollback(); errRollback != nil {
+				err = fmt.Errorf("(repo) rollback error: %w; %w", errRollback, err)
+			}
+		} else { 
+			if errCommit := tx.Commit(); errCommit != nil {
+				err = fmt.Errorf("(repo) commit error: %w", errCommit)
+			}
+		} 
+	}()
 
 	insertTrackQuery := fmt.Sprintf(
 		`INSERT INTO %s (name, album_id, album_position, cover_src, record_src) 
@@ -42,7 +54,6 @@ func (p *PostgreSQL) Insert(track models.Track, artistsID []uint32) (uint32, err
 	var trackID uint32
 	row := tx.QueryRow(insertTrackQuery, track.Name, track.AlbumID, track.AlbumPosition, track.CoverSrc, track.RecordSrc)
 	if err := row.Scan(&trackID); err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
@@ -53,12 +64,9 @@ func (p *PostgreSQL) Insert(track models.Track, artistsID []uint32) (uint32, err
 
 	for _, artistID := range artistsID {
 		if _, err := tx.Exec(insertTrackArtistsQuery, artistID, trackID); err != nil {
-			tx.Rollback()
 			return 0, fmt.Errorf("(repo) failed to exec query: %w", err)
 		}
 	}
-
-	tx.Commit()
 
 	return trackID, nil
 }
@@ -72,16 +80,31 @@ func (p *PostgreSQL) GetByID(trackID uint32) (*models.Track, error) {
 
 	var track models.Track
 	err := p.db.Get(&track, query, trackID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return &models.Track{},
+			fmt.Errorf("(repo) %w: %v", &models.NoSuchTrackError{TrackID: trackID}, err)
+	}
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return &models.Track{},
-				fmt.Errorf("(repo) %w: %w", &models.NoSuchTrackError{TrackID: trackID}, err)
-		}
-
 		return &models.Track{}, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
 	return &track, nil
+}
+
+func (p *PostgreSQL) Update(track models.Track) error {
+	query := fmt.Sprintf(
+		`UPDATE %s 
+		SET name = $1, album_id = $2, album_position = $3, cover_src = $4, record_src = $5, listens = $6
+		WHERE id = $7;`,
+		p.tables.Tracks())
+
+	if _, err := p.db.Exec(query, track.Name, track.AlbumID, track.AlbumPosition,
+		track.CoverSrc, track.RecordSrc, track.Listens, track.ID); err != nil {
+
+		return fmt.Errorf("(repo) failed to exec query: %w", err)
+	}
+
+	return nil
 }
 
 func (p *PostgreSQL) DeleteByID(trackID uint32) error {
@@ -91,13 +114,8 @@ func (p *PostgreSQL) DeleteByID(trackID uint32) error {
 		WHERE id = $1;`,
 		p.tables.Tracks())
 
-	resExec, err := p.db.Exec(query, trackID)
-	if err != nil {
+	if _, err := p.db.Exec(query, trackID); err != nil {
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
-	}
-	deleted, _ := resExec.RowsAffected() // postgres 100% supports rowsAffected, so no error
-	if deleted == 0 {
-		return fmt.Errorf("(repo): %w", &models.NoSuchTrackError{TrackID: trackID})
 	}
 
 	return nil
@@ -128,10 +146,6 @@ func (p *PostgreSQL) GetByAlbum(albumID uint32) ([]models.Track, error) {
 
 	var tracks []models.Track
 	if err := p.db.Select(&tracks, query, albumID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchAlbumError{AlbumID: albumID}, err)
-		}
-
 		return nil, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
@@ -148,10 +162,6 @@ func (p *PostgreSQL) GetByArtist(artistID uint32) ([]models.Track, error) {
 
 	var tracks []models.Track
 	if err := p.db.Select(&tracks, query, artistID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchArtistError{ArtistID: artistID}, err)
-		}
-
 		return nil, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
@@ -168,10 +178,6 @@ func (p *PostgreSQL) GetLikedByUser(userID uint32) ([]models.Track, error) {
 
 	var tracks []models.Track
 	if err := p.db.Select(&tracks, query, userID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchUserError{UserID: userID}, err)
-		}
-
 		return nil, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
@@ -187,21 +193,17 @@ func (p *PostgreSQL) InsertLike(trackID, userID uint32) (bool, error) {
 		p.tables.LikedTracks())
 
 	if _, err := p.db.Exec(insertLikeQuery, trackID, userID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, fmt.Errorf("(repo) %w: %w", &models.NoSuchTrackError{TrackID: trackID}, err)
-		}
-
 		if pqerr, ok := err.(*pq.Error); ok {
 			if pqerr.Code.Name() == errorLikeExists {
 				return false, nil
-			}
-		}
+			} 
+		} 
 
 		return false, fmt.Errorf("(repo) failed to insert: %w", err)
 	}
 
 	return true, nil
-}
+} 
 
 func (p *PostgreSQL) DeleteLike(trackID, userID uint32) (bool, error) {
 	query := fmt.Sprintf(
@@ -224,22 +226,4 @@ func (p *PostgreSQL) DeleteLike(trackID, userID uint32) (bool, error) {
 	} else {
 		return true, nil
 	}
-}
-
-func (p *PostgreSQL) IsLiked(trackID, userID uint32) (bool, error) {
-	query := fmt.Sprintf(
-		`SELECT CASE WHEN 
-			EXISTS(SELECT *
-				FROM %s
-				WHERE track_id = $1 AND user_id = $2
-			) THEN TRUE ELSE FALSE END;`,
-		p.tables.LikedTracks())
-
-	var isLiked bool
-	err := p.db.Get(&isLiked, query, trackID, userID)
-	if err != nil {
-		return false, fmt.Errorf("(repo) failed to check if track is liked by user: %w", err)
-	}
-
-	return isLiked, nil
 }
