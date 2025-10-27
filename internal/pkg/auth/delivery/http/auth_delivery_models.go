@@ -27,20 +27,10 @@ func (li *loginInput) validate() error {
 }
 
 type loginResponse struct {
-	UserID uint32 `json:"id"`
+	JWT string `json:"jwt"`
 }
 
 // Logout
 type logoutResponse struct {
-	Status string `json:"status"`
-}
-
-// ChangePassword
-type changePassInput struct {
-	OldPassword string `json:"old_password"`
-	NewPassword string `json:"new_password"`
-}
-
-type changePassResponse struct {
 	Status string `json:"status"`
 }
