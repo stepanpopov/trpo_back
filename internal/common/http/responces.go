@@ -12,8 +12,6 @@ type Error struct {
 }
 
 func ErrorResponse(w http.ResponseWriter, msg string, code int, logger logger.Logger) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
 	errorResp := Error{Message: msg}
 	message, err := json.Marshal(errorResp)
 	if err != nil {
@@ -23,6 +21,7 @@ func ErrorResponse(w http.ResponseWriter, msg string, code int, logger logger.Lo
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	w.Write(message)
 }

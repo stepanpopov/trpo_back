@@ -17,16 +17,14 @@ const (
 	UserIdUrlParam   = "userID"
 )
 
-var ErrUnauthorized = &models.UnathorizedError{}
-
 // GetUserFromRequest returns error if authentication failed
 func GetUserFromRequest(r *http.Request) (*models.User, error) {
 	user, ok := r.Context().Value(models.ContextKeyUserType{}).(*models.User)
 	if !ok {
-		return nil, ErrUnauthorized
+		return nil, errors.New("(middleware) no User in context")
 	}
 	if user == nil {
-		return nil, ErrUnauthorized
+		return nil, errors.New("(middleware) nil User in context")
 	}
 
 	return user, nil
@@ -49,8 +47,12 @@ func GetAlbumIDFromRequest(r *http.Request) (uint32, error) {
 }
 
 func convertID(idUrl string) (uint32, error) {
-	id, err := strconv.ParseUint(idUrl, 10, 0)
+	id, err := strconv.Atoi(idUrl)
+
 	if err != nil {
+		return 0, errors.New("invalid ID url param")
+	}
+	if id <= 0 {
 		return 0, errors.New("invalid ID url param")
 	}
 

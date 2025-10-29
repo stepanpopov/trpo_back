@@ -105,11 +105,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := commonHttp.GetUserFromRequest(r)
-	if err != nil && !errors.Is(err, commonHttp.ErrUnauthorized) {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
-		return
-	}
+	user, _ := commonHttp.GetUserFromRequest(r)
 
 	tt, err := models.TrackTransferFromEntry(*track, user, h.trackServices.IsLiked, h.artistServices.GetByTrack)
 	if err != nil {
@@ -195,11 +191,7 @@ func (h *Handler) GetByArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := commonHttp.GetUserFromRequest(r)
-	if err != nil && !errors.Is(err, commonHttp.ErrUnauthorized) {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
-		return
-	}
+	user, _ := commonHttp.GetUserFromRequest(r)
 
 	tt, err := models.TrackTransferFromQuery(tracks, user, h.trackServices.IsLiked, h.artistServices.GetByTrack)
 	if err != nil {
@@ -238,11 +230,7 @@ func (h *Handler) GetByAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := commonHttp.GetUserFromRequest(r)
-	if err != nil && !errors.Is(err, commonHttp.ErrUnauthorized) {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
-		return
-	}
+	user, _ := commonHttp.GetUserFromRequest(r)
 
 	tt, err := models.TrackTransferFromQuery(tracks, user, h.trackServices.IsLiked, h.artistServices.GetByTrack)
 	if err != nil {
@@ -267,11 +255,7 @@ func (h *Handler) Feed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := commonHttp.GetUserFromRequest(r)
-	if err != nil && !errors.Is(err, commonHttp.ErrUnauthorized) {
-		commonHttp.ErrorResponseWithErrLogging(w, "can't get tracks", http.StatusInternalServerError, h.logger, err)
-		return
-	}
+	user, _ := commonHttp.GetUserFromRequest(r)
 
 	tt, err := models.TrackTransferFromQuery(tracks, user, h.trackServices.IsLiked, h.artistServices.GetByTrack)
 	if err != nil {

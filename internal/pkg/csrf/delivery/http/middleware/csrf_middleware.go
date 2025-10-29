@@ -8,8 +8,6 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 )
 
-const csrfTokenHttpHeader = "X-CSRF-Token"
-
 type Middleware struct {
 	tokenServices token.Usecase
 	logger        logger.Logger
@@ -30,8 +28,9 @@ func (m *Middleware) CheckCSRFToken(next http.Handler) http.Handler {
 			return
 		}
 
-		csrfToken := r.Header.Get(csrfTokenHttpHeader)
-		userIDFromToken, err := m.tokenServices.CheckCSRFToken(csrfToken)
+		csrfToken := r.Header.Get("X-CSRF-Token")
+
+		userIDFromToken, err := m.tokenServices.CheckCSRFToken(csrfToken); 
 		if err != nil {
 			commonHttp.ErrorResponseWithErrLogging(w, "invalid CSRF token", http.StatusBadRequest, m.logger, err)
 			return
