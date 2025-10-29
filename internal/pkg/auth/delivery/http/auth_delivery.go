@@ -43,7 +43,7 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := UserAuthDeliveryValidate(&user); err != nil {
+	if err := user.DeliveryValidate(); err != nil {
 		commonHttp.ErrorResponseWithErrLogging(w, "incorrect input body", http.StatusBadRequest, h.logger, err)
 		return
 	}
@@ -191,16 +191,14 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) IsAuthenticated(w http.ResponseWriter, r *http.Request) {
-	iar := isAuthenticatedResponse{}
+	user, _ := commonHttp.GetUserFromRequest(r)
 
-	user, err := commonHttp.GetUserFromRequest(r)
-	if err != nil {
-		iar.Authenticated = false
+	resp := isAuthenticatedResponse{}
+	if user == nil {
+		resp.Authenticated = true
+	} else {
+		resp.Authenticated = false
 	}
 
-	if user != nil {
-		iar.Authenticated = true
-	}
-
-	commonHttp.SuccessResponse(w, iar, h.logger)
+	commonHttp.SuccessResponse(w, resp, h.logger)
 }

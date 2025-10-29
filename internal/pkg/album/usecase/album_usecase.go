@@ -29,7 +29,6 @@ func (u *Usecase) Create(album models.Album, artistsID []uint32, userID uint32) 
 		}
 		if a.UserID != nil && *a.UserID == userID {
 			userInArtists = true
-			break
 		}
 	}
 	if !userInArtists {
@@ -66,7 +65,6 @@ func (u *Usecase) Delete(albumID uint32, userID uint32) error {
 	for _, artist := range artists {
 		if artist.UserID != nil && *artist.UserID == userID {
 			userInArtists = true
-			break
 		}
 	}
 	if !userInArtists {
@@ -126,12 +124,12 @@ func (u *Usecase) SetLike(albumID, userID uint32) (bool, error) {
 		return false, fmt.Errorf("(usecase) can't get album: %w", err)
 	}
 
-	isInserted, err := u.albumRepo.InsertLike(albumID, userID)
+	iSinserted, err := u.albumRepo.InsertLike(albumID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(usecase) failed to set like: %w", err)
 	}
 
-	return isInserted, nil
+	return iSinserted, nil
 }
 
 func (u *Usecase) UnLike(albumID, userID uint32) (bool, error) {
@@ -139,10 +137,10 @@ func (u *Usecase) UnLike(albumID, userID uint32) (bool, error) {
 		return false, fmt.Errorf("(usecase) can't get album: %w", err)
 	}
 
-	isDeleted, err := u.albumRepo.DeleteLike(albumID, userID)
+	iSdeleted, err := u.albumRepo.DeleteLike(albumID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(usecase) failed to unset like: %w", err)
 	}
 
-	return isDeleted, nil
+	return iSdeleted, nil
 }

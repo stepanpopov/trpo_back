@@ -8,12 +8,13 @@ import (
 )
 
 func Panic(logger logger.Logger) func(next http.Handler) http.Handler {
-
+	
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					logger.Errorf("PANIC (recovered): %s", err)
+					logger.Errorf("PANIC: %s", err)
+					logger.Info("panic recovered")
 					commonHttp.ErrorResponse(w, "server unknown error", http.StatusInternalServerError, logger)
 				}
 			}()
