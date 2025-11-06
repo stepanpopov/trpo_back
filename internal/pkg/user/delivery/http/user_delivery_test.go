@@ -3,12 +3,13 @@ package http
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
 
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 
@@ -19,10 +20,10 @@ import (
 	userMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/mocks"
 )
 
-func getCorrectUser(t *testing.T) *models.User {
+func getCorrectUser() *models.User {
 	birthTime, err := time.Parse(time.RFC3339, "2003-08-23T00:00:00Z")
 	if err != nil {
-		require.NoError(t, err, "can't Parse birth date")
+		log.Fatalf("can't Parse birth date: %v", err)
 	}
 	birthDate := models.Date{Time: birthTime}
 
@@ -38,10 +39,10 @@ func getCorrectUser(t *testing.T) *models.User {
 	}
 }
 
-func getCorrectUserInfo(t *testing.T) *models.User {
+func getCorrectUserInfo() *models.User {
 	birthTime, err := time.Parse(time.RFC3339, "2003-08-23T00:00:00Z")
 	if err != nil {
-		require.NoError(t, err, "can't Parse birth date")
+		log.Fatalf("can't Parse birth date: %v", err)
 	}
 	birthDate := models.Date{Time: birthTime}
 
@@ -74,7 +75,7 @@ func TestUserDeliveryGet(t *testing.T) {
 	r.Get("/api/users/{userID}/", h.Get)
 
 	// Test filling
-	correctUserID := uint32(1)
+	const correctUserID uint32 = 1
 	correctUserIDPath := fmt.Sprint(correctUserID)
 
 	correctResponse := `{
@@ -98,15 +99,15 @@ func TestUserDeliveryGet(t *testing.T) {
 		{
 			name:             "Common",
 			userIDPath:       correctUserIDPath,
-			user:             getCorrectUser(t),
-			expectedStatus:   200,
+			user:             getCorrectUser(),
+			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
 		},
 		{
 			name:             "Server error",
 			userIDPath:       correctUserIDPath,
 			user:             nil,
-			expectedStatus:   500,
+			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: `{"message": "can't get user"}`,
 		},
 	}
@@ -139,7 +140,7 @@ func TestUserDeliveryUpdateInfo(t *testing.T) {
 	r.Post("/api/users/{userID}/update", h.UpdateInfo)
 
 	// Test filling
-	correctUserID := uint32(1)
+	const correctUserID uint32 = 1
 	correctUserIDPath := fmt.Sprint(correctUserID)
 
 	correctBody := `{
@@ -164,43 +165,43 @@ func TestUserDeliveryUpdateInfo(t *testing.T) {
 		{
 			name:        "Common",
 			userIDPath:  correctUserIDPath,
-			user:        getCorrectUserInfo(t),
+			user:        getCorrectUserInfo(),
 			requestBody: correctBody,
 			mockBehavior: func(uu *userMocks.MockUsecase, user *models.User) {
 				uu.EXPECT().UpdateInfo(user).Return(nil)
 			},
-			expectedStatus:   200,
+			expectedStatus:   http.StatusOK,
 			expectedResponse: `{"status": "ok"}`,
 		},
 		{
 			name:             "Incorrect Body",
 			userIDPath:       correctUserIDPath,
-			user:             getCorrectUserInfo(t),
+			user:             getCorrectUserInfo(),
 			requestBody:      `{"id": 1`,
 			mockBehavior:     func(uu *userMocks.MockUsecase, user *models.User) {},
-			expectedStatus:   400,
+			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: `{"message": "incorrect input body"}`,
 		},
 		{
 			name:        "No Such User",
 			userIDPath:  correctUserIDPath,
-			user:        getCorrectUserInfo(t),
+			user:        getCorrectUserInfo(),
 			requestBody: correctBody,
 			mockBehavior: func(uu *userMocks.MockUsecase, user *models.User) {
 				uu.EXPECT().UpdateInfo(user).Return(&models.NoSuchUserError{})
 			},
-			expectedStatus:   400,
+			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: `{"message": "no user to update"}`,
 		},
 		{
 			name:        "Server Error",
 			userIDPath:  correctUserIDPath,
-			user:        getCorrectUserInfo(t),
+			user:        getCorrectUserInfo(),
 			requestBody: correctBody,
 			mockBehavior: func(uu *userMocks.MockUsecase, user *models.User) {
 				uu.EXPECT().UpdateInfo(user).Return(errors.New(""))
 			},
-			expectedStatus:   500,
+			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: `{"message": "can't change user info"}`,
 		},
 	}
@@ -235,7 +236,7 @@ func TestUserDeliveryGetFavoriteTracks(t *testing.T) {
 	r.Get("/api/users/{userID}/tracks", h.GetFavouriteTracks)
 
 	// Test filling
-	correctUserID := uint32(1)
+	const correctUserID uint32 = 1
 	correctUserIDPath := fmt.Sprint(correctUserID)
 
 	expectedReturnTracks := []models.Track{
@@ -310,7 +311,7 @@ func TestUserDeliveryGetFavoriteTracks(t *testing.T) {
 	}{
 		{
 			name: "Common",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(tu *trackMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
 				tu.EXPECT().GetLikedByUser(userID).Return(expectedReturnTracks, nil)
 				for ind, track := range expectedReturnTracks {
@@ -318,37 +319,37 @@ func TestUserDeliveryGetFavoriteTracks(t *testing.T) {
 					tu.EXPECT().IsLiked(track.ID, userID).Return(true, nil)
 				}
 			},
-			expectedStatus:   200,
+			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
 		},
 		{
 			name: "Tracks Issue",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(tu *trackMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
 				tu.EXPECT().GetLikedByUser(userID).Return(nil, errors.New(""))
 			},
-			expectedStatus:   500,
+			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: `{"message": "can't get favorite tracks"}`,
 		},
 		{
 			name: "Artists Issue",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(tu *trackMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
 				tu.EXPECT().GetLikedByUser(userID).Return(expectedReturnTracks, nil)
 				au.EXPECT().GetByTrack(expectedReturnTracks[0].ID).Return(nil, errors.New(""))
 			},
-			expectedStatus:   500,
+			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: `{"message": "can't get favorite tracks"}`,
 		},
 		{
 			name: "Likes Issue",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(tu *trackMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
 				tu.EXPECT().GetLikedByUser(userID).Return(expectedReturnTracks, nil)
 				au.EXPECT().GetByTrack(expectedReturnTracks[0].ID).Return(expectedReturnArtists[0:1], nil)
 				tu.EXPECT().IsLiked(expectedReturnTracks[0].ID, userID).Return(false, errors.New(""))
 			},
-			expectedStatus:   500,
+			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: `{"message": "can't get favorite tracks"}`,
 		},
 	}
@@ -383,7 +384,7 @@ func TestUserDeliveryGetFavoriteAlbums(t *testing.T) {
 	r.Get("/api/users/{userID}/albums", h.GetFavouriteAlbums)
 
 	// Test filling
-	correctUserID := uint32(1)
+	const correctUserID uint32 = 1
 	correctUserIDPath := fmt.Sprint(correctUserID)
 
 	descriptionID1 := "Антиутопия"
@@ -454,33 +455,33 @@ func TestUserDeliveryGetFavoriteAlbums(t *testing.T) {
 	}{
 		{
 			name: "Common",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(alu *albumMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
 				alu.EXPECT().GetLikedByUser(userID).Return(expectedReturnAlbums, nil)
 				for ind, track := range expectedReturnAlbums {
 					au.EXPECT().GetByAlbum(track.ID).Return(expectedReturnArtists[ind:ind+1], nil)
 				}
 			},
-			expectedStatus:   200,
+			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
 		},
 		{
 			name: "Albums Issue",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(alu *albumMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
 				alu.EXPECT().GetLikedByUser(userID).Return(nil, errors.New(""))
 			},
-			expectedStatus:   500,
+			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: `{"message": "can't get favorite albums"}`,
 		},
 		{
 			name: "Artists Issue",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(alu *albumMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
 				alu.EXPECT().GetLikedByUser(userID).Return(expectedReturnAlbums, nil)
 				au.EXPECT().GetByAlbum(expectedReturnAlbums[0].ID).Return(nil, errors.New(""))
 			},
-			expectedStatus:   500,
+			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: `{"message": "can't get favorite albums"}`,
 		},
 	}
@@ -515,7 +516,7 @@ func TestUserDeliveryGetFavoriteArtists(t *testing.T) {
 	r.Get("/api/users/{userID}/artists", h.GetFavouriteArtists)
 
 	// Test filling
-	correctUserID := uint32(1)
+	const correctUserID uint32 = 1
 	correctUserIDPath := fmt.Sprint(correctUserID)
 
 	expectedReturnArtists := []models.Artist{
@@ -553,20 +554,20 @@ func TestUserDeliveryGetFavoriteArtists(t *testing.T) {
 	}{
 		{
 			name: "Common",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(au *artistMocks.MockUsecase, userID uint32) {
 				au.EXPECT().GetLikedByUser(userID).Return(expectedReturnArtists, nil)
 			},
-			expectedStatus:   200,
+			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
 		},
 		{
 			name: "Artists Issue",
-			user: getCorrectUser(t),
+			user: getCorrectUser(),
 			mockBehavior: func(au *artistMocks.MockUsecase, userID uint32) {
 				au.EXPECT().GetLikedByUser(userID).Return(nil, errors.New(""))
 			},
-			expectedStatus:   500,
+			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: `{"message": "can't get favorite artists"}`,
 		},
 	}

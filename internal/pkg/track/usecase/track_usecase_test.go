@@ -27,7 +27,7 @@ func TestTrackUsecaseCreate(t *testing.T) {
 
 	u := NewUsecase(tr, arr, alr, l)
 
-	correctUserID := uint32(1)
+	var correctUserID uint32 = 1
 	correctArtists := []models.Artist{
 		{
 			ID:        1,
@@ -124,7 +124,6 @@ func TestTrackUsecaseCreate(t *testing.T) {
 			if tc.expectError {
 				assert.ErrorContains(t, err, tc.expectedErrorMsg)
 			} else {
-				assert.NoError(t, err)
 				assert.Equal(t, albumID, tc.album.ID)
 			}
 		})

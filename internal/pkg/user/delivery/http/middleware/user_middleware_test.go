@@ -12,6 +12,10 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 )
 
+var correctUser = models.User{
+	ID: 1,
+}
+
 func TestUserDeliveryCheckUserAuthAndResponse(t *testing.T) {
 	c := gomock.NewController(t)
 
@@ -21,10 +25,8 @@ func TestUserDeliveryCheckUserAuthAndResponse(t *testing.T) {
 
 	r := chi.NewRouter()
 
-	correctUser := models.User{
-		ID: 1,
-	}
-	correctUserIDPath := fmt.Sprint(correctUser.ID)
+	const correctUserID uint32 = 1
+	correctUserIDPath := fmt.Sprint(correctUserID)
 
 	testTable := []struct {
 		name             string
@@ -37,21 +39,21 @@ func TestUserDeliveryCheckUserAuthAndResponse(t *testing.T) {
 			name:             "Incorrect ID In Path",
 			userIDPath:       "0",
 			user:             &correctUser,
-			expectedStatus:   400,
+			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: `{"message": "invalid url parameter"}`,
 		},
 		{
 			name:             "No User",
 			userIDPath:       correctUserIDPath,
 			user:             nil,
-			expectedStatus:   401,
+			expectedStatus:   http.StatusUnauthorized,
 			expectedResponse: `{"message": "unathorized"}`,
 		},
 		{
 			name:             "Mismatched IDs",
 			userIDPath:       "2",
 			user:             &correctUser,
-			expectedStatus:   403,
+			expectedStatus:   http.StatusForbidden,
 			expectedResponse: `{"message": "user has no rights"}`,
 		},
 	}
