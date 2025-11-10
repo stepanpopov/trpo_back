@@ -64,11 +64,11 @@ func (e *NoSuchUserError) Error() string {
 }
 
 type IncorrectPasswordError struct {
-	UserID uint32
+	UserId uint32
 }
 
 func (e *IncorrectPasswordError) Error() string {
-	return fmt.Sprintf("incorrect password for user #%d", e.UserID)
+	return fmt.Sprintf("incorrect password for user #%d", e.UserId)
 }
 
 type UnathorizedError struct{}
