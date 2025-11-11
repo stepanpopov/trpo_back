@@ -2,8 +2,11 @@
 
 all: clear_media server_start
 
-server_start:
-	go run ./cmd/app/main.go
+api_start:
+	go run ./cmd/api/main.go
+
+auth_start:
+	go run ./cmd/auth/auth.go
 
 clear_media:
 	rm -r ./img
@@ -12,9 +15,3 @@ check_coverage:
 	go test -coverpkg=./... -coverprofile=coverage.out ./... \
 	&& cat coverage.out | fgrep -v "mocks" | fgrep -v "docs" > purified_coverage.out \
 	&& go tool cover -func purified_coverage.out | grep total
-
-generate_api_docs:
-	swag init -g cmd/app/main.go
-
-generate_mocks:
-	go generate ./...

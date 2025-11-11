@@ -2,7 +2,6 @@ package tests
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -47,12 +46,4 @@ func deliveryTest(t *testing.T, r *chi.Mux, req *http.Request, expectedStatus in
 	assert.Equal(t, expectedStatus, w.Code)
 	assert.JSONEq(t, expectedJSONResponse, w.Body.String())
 	return w
-}
-
-func ErrorResponse(msg string) string {
-	return fmt.Sprintf(`{"message": "%s"}`, msg)
-}
-
-func OKResponse(msg string) string {
-	return fmt.Sprintf(`{"status": "%s"}`, msg)
 }

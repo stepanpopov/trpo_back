@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 
-	commonHttp "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http"
 	commonTests "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/tests"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	albumMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/album/mocks"
@@ -40,7 +39,7 @@ func TestAlbumDeliveryCreate(t *testing.T) {
 	// Test filling
 	correctRequestBody := `{
 		"name": "Горгород",
-		"artists": [1],
+		"artistsID": [1],
 		"description": "Антиутопия",
 		"cover": "/albums/covers/gorgorod.png"
 	}`
@@ -51,8 +50,7 @@ func TestAlbumDeliveryCreate(t *testing.T) {
 	expectedCallAlbum := models.Album{
 		Name:        "Горгород",
 		Description: &description,
-
-		CoverSrc: "/albums/covers/gorgorod.png",
+		CoverSrc:    "/albums/covers/gorgorod.png",
 	}
 
 	testTable := []struct {
@@ -82,7 +80,7 @@ func TestAlbumDeliveryCreate(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
+			expectedResponse: `{"message": "unathorized"}`,
 		},
 		{
 			name: "Incorrect JSON",
@@ -95,10 +93,10 @@ func TestAlbumDeliveryCreate(t *testing.T) {
 			}`,
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.IncorrectRequestBody),
+			expectedResponse: `{"message": "incorrect input body"}`,
 		},
 		{
-			name: "Incorrect Body (no name & isLiked)",
+			name: "Incorrect Body (no name)",
 			user: &correctUser,
 			requestBody: `{
 				"artistsID": [1],
@@ -107,7 +105,7 @@ func TestAlbumDeliveryCreate(t *testing.T) {
 			}`,
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.IncorrectRequestBody),
+			expectedResponse: `{"message": "incorrect input body"}`,
 		},
 		{
 			name:        "User Has No Rights",
@@ -121,7 +119,7 @@ func TestAlbumDeliveryCreate(t *testing.T) {
 				).Return(uint32(0), &models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
-			expectedResponse: commonTests.ErrorResponse(albumCreateNorights),
+			expectedResponse: `{"message": "no rights to crearte album"}`,
 		},
 		{
 			name:        "Server Error",
@@ -135,7 +133,7 @@ func TestAlbumDeliveryCreate(t *testing.T) {
 				).Return(uint32(0), errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(albumCreateServerError),
+			expectedResponse: `{"message": "can't create album"}`,
 		},
 	}
 
@@ -194,12 +192,10 @@ func TestAlbumDeliveryGet(t *testing.T) {
 			{
 				"id": 1,
 				"name": "Oxxxymiron",
-				"isLiked": false,
 				"cover": "/artists/avatars/oxxxymiron.png"
 			}
 		],
 		"description": "Антиутопия",
-		"isLiked": false,
 		"cover": "/albums/covers/gorgorod.png"
 	}`
 
@@ -217,11 +213,7 @@ func TestAlbumDeliveryGet(t *testing.T) {
 			user:        &correctUser,
 			mockBehavior: func(alu *albumMocks.MockUsecase, aru *artistMocks.MockUsecase) {
 				alu.EXPECT().GetByID(correctAlbumID).Return(&expectedReturnAlbum, nil)
-				alu.EXPECT().IsLiked(correctAlbumID, correctUser.ID).Return(false, nil)
 				aru.EXPECT().GetByAlbum(correctAlbumID).Return(expectedReturnArtists, nil)
-				for _, a := range expectedReturnArtists {
-					aru.EXPECT().IsLiked(a.ID, correctUser.ID).Return(false, nil)
-				}
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
@@ -231,7 +223,7 @@ func TestAlbumDeliveryGet(t *testing.T) {
 			albumIDPath:      "incorrect",
 			mockBehavior:     func(alu *albumMocks.MockUsecase, aru *artistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
+			expectedResponse: `{"message": "invalid url parameter"}`,
 		},
 		{
 			name:        "No Album To Get",
@@ -241,7 +233,7 @@ func TestAlbumDeliveryGet(t *testing.T) {
 				alu.EXPECT().GetByID(correctAlbumID).Return(nil, &models.NoSuchAlbumError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(albumNotFound),
+			expectedResponse: `{"message": "no such album"}`,
 		},
 		{
 			name:        "Albums Issues",
@@ -251,7 +243,7 @@ func TestAlbumDeliveryGet(t *testing.T) {
 				alu.EXPECT().GetByID(correctAlbumID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(albumGetServerError),
+			expectedResponse: `{"message": "can't get album"}`,
 		},
 		{
 			name:        "Artists Issues",
@@ -262,7 +254,7 @@ func TestAlbumDeliveryGet(t *testing.T) {
 				aru.EXPECT().GetByAlbum(correctAlbumID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(albumGetServerError),
+			expectedResponse: `{"message": "can't get album"}`,
 		},
 	}
 
@@ -323,7 +315,7 @@ func TestAlbumDeliveryDelete(t *testing.T) {
 			albumIDPath:      "incorrect",
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
+			expectedResponse: `{"message": "invalid url parameter"}`,
 		},
 		{
 			name:             "No User",
@@ -331,7 +323,7 @@ func TestAlbumDeliveryDelete(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
+			expectedResponse: `{"message": "unathorized"}`,
 		},
 		{
 			name:        "User Has No Rights",
@@ -344,7 +336,7 @@ func TestAlbumDeliveryDelete(t *testing.T) {
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
-			expectedResponse: commonTests.ErrorResponse(albumDeleteNoRights),
+			expectedResponse: `{"message": "no rights to delete album"}`,
 		},
 		{
 			name:        "No Album To Delete",
@@ -357,7 +349,7 @@ func TestAlbumDeliveryDelete(t *testing.T) {
 				).Return(&models.NoSuchAlbumError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(albumNotFound),
+			expectedResponse: `{"message": "no such album"}`,
 		},
 		{
 			name:        "Server Error",
@@ -370,7 +362,7 @@ func TestAlbumDeliveryDelete(t *testing.T) {
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(albumDeleteServerError),
+			expectedResponse: `{"message": "can't delete album"}`,
 		},
 	}
 
@@ -445,12 +437,10 @@ func TestAlbumDeliveryFeed(t *testing.T) {
 				{
 					"id": 1,
 					"name": "Oxxxymiron",
-					"isLiked": false,
 					"cover": "/artists/avatars/oxxxymiron.png"
 				}
 			],
 			"description": "Антиутопия",
-			"isLiked": false,
 			"cover": "/albums/covers/gorgorod.png"
 		},
 		{
@@ -460,18 +450,15 @@ func TestAlbumDeliveryFeed(t *testing.T) {
 				{
 					"id": 2,
 					"name": "SALUKI",
-					"isLiked": false,
 					"cover": "/artists/avatars/saluki.png"
 				},
 				{
 					"id": 3,
 					"name": "104",
-					"isLiked": false,
 					"cover": "/artists/avatars/104.png"
 				}
 			],
 			"description": "Крутой альбом от крутого дуета",
-			"isLiked": false,
 			"cover": "/albums/covers/shameorglory.png"
 		}
 	]`
@@ -506,7 +493,7 @@ func TestAlbumDeliveryFeed(t *testing.T) {
 				alu.EXPECT().GetFeed().Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(albumsGetServerError),
+			expectedResponse: `{"message": "can't get albums"}`,
 		},
 		{
 			name: "Artists Issues",
@@ -515,7 +502,7 @@ func TestAlbumDeliveryFeed(t *testing.T) {
 				aru.EXPECT().GetByAlbum(expectedReturnAlbums[0].ID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(albumsGetServerError),
+			expectedResponse: `{"message": "can't get albums"}`,
 		},
 	}
 
@@ -526,144 +513,6 @@ func TestAlbumDeliveryFeed(t *testing.T) {
 
 			commonTests.DeliveryTestGet(t, r, "/api/albums/feed", tc.expectedStatus, tc.expectedResponse,
 				func(req *http.Request) *http.Request { return req })
-		})
-	}
-}
-
-func TestAlbumDeliveryGetFavorite(t *testing.T) {
-	type mockBehavior func(alu *albumMocks.MockUsecase, aru *artistMocks.MockUsecase, userID uint32)
-
-	c := gomock.NewController(t)
-
-	alu := albumMocks.NewMockUsecase(c)
-	aru := artistMocks.NewMockUsecase(c)
-
-	l := commonTests.MockLogger(c)
-
-	h := NewHandler(alu, aru, l)
-
-	// Routing
-	r := chi.NewRouter()
-	r.Get("/api/users/{userID}/albums", h.GetFavorite)
-
-	// Test filling
-	const correctUserID uint32 = 1
-	correctUserIDPath := fmt.Sprint(correctUserID)
-
-	descriptionID1 := "Антиутопия"
-	descriptionID2 := "Стиль"
-	expectedReturnAlbums := []models.Album{
-		{
-			ID:          1,
-			Name:        "Горгород",
-			Description: &descriptionID1,
-			CoverSrc:    "/albums/covers/gorgorod.png",
-		},
-		{
-			ID:          2,
-			Name:        "Властелин Калек",
-			Description: &descriptionID2,
-			CoverSrc:    "/albums/covers/vlkal.png",
-		},
-	}
-
-	expectedReturnArtists := []models.Artist{
-		{
-			ID:        1,
-			Name:      "Oxxxymiron",
-			AvatarSrc: "/artists/avatars/oxxxymiron.png",
-		},
-		{
-			ID:        2,
-			Name:      "SALUKI",
-			AvatarSrc: "/artists/avatars/saluki.png",
-		},
-	}
-
-	correctResponse := `[
-		{
-			"id": 1,
-			"name": "Горгород",
-			"artists": [
-				{
-					"id": 1,
-					"name": "Oxxxymiron",
-					"isLiked": false,
-					"cover": "/artists/avatars/oxxxymiron.png"
-				}
-			],
-			"description": "Антиутопия",
-			"isLiked": true,
-			"cover": "/albums/covers/gorgorod.png"
-		},
-		{
-			"id": 2,
-			"name": "Властелин Калек",
-			"artists": [
-				{
-					"id": 2,
-					"name": "SALUKI",
-					"isLiked": false,
-					"cover": "/artists/avatars/saluki.png"
-				}
-			],
-			"description": "Стиль",
-			"isLiked": true,
-			"cover": "/albums/covers/vlkal.png"
-		}
-	]`
-
-	testTable := []struct {
-		name             string
-		user             *models.User
-		mockBehavior     mockBehavior
-		expectedStatus   int
-		expectedResponse string
-	}{
-		{
-			name: "Common",
-			user: &correctUser,
-			mockBehavior: func(alu *albumMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
-				alu.EXPECT().GetLikedByUser(userID).Return(expectedReturnAlbums, nil)
-				for ind, album := range expectedReturnAlbums {
-					alu.EXPECT().IsLiked(album.ID, correctUserID).Return(true, nil)
-					au.EXPECT().GetByAlbum(album.ID).Return(expectedReturnArtists[ind:ind+1], nil)
-					for _, a := range expectedReturnArtists[ind : ind+1] {
-						au.EXPECT().IsLiked(a.ID, correctUserID).Return(false, nil)
-					}
-				}
-			},
-			expectedStatus:   http.StatusOK,
-			expectedResponse: correctResponse,
-		},
-		{
-			name: "Albums Issue",
-			user: &correctUser,
-			mockBehavior: func(alu *albumMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
-				alu.EXPECT().GetLikedByUser(userID).Return(nil, errors.New(""))
-			},
-			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(albumsGetServerError),
-		},
-		{
-			name: "Artists Issue",
-			user: &correctUser,
-			mockBehavior: func(alu *albumMocks.MockUsecase, au *artistMocks.MockUsecase, userID uint32) {
-				alu.EXPECT().GetLikedByUser(userID).Return(expectedReturnAlbums, nil)
-				au.EXPECT().GetByAlbum(expectedReturnAlbums[0].ID).Return(nil, errors.New(""))
-			},
-			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(albumsGetServerError),
-		},
-	}
-
-	for _, tc := range testTable {
-		t.Run(tc.name, func(t *testing.T) {
-			// Call mock
-			tc.mockBehavior(alu, aru, tc.user.ID)
-
-			commonTests.DeliveryTestGet(t, r, "/api/users/"+correctUserIDPath+"/albums", tc.expectedStatus, tc.expectedResponse,
-				commonTests.WrapRequestWithUserNotNilFunc(tc.user))
 		})
 	}
 }
@@ -704,7 +553,7 @@ func TestAlbumDeliveryLike(t *testing.T) {
 				au.EXPECT().SetLike(correctAlbumID, correctUser.ID).Return(true, nil)
 			},
 			expectedStatus:   http.StatusOK,
-			expectedResponse: commonTests.OKResponse(commonHttp.LikeSuccess),
+			expectedResponse: `{"status": "ok"}`,
 		},
 		{
 			name:        "Already liked (Anyway Success)",
@@ -714,7 +563,7 @@ func TestAlbumDeliveryLike(t *testing.T) {
 				au.EXPECT().SetLike(correctAlbumID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
-			expectedResponse: commonTests.OKResponse(commonHttp.LikeAlreadyExists),
+			expectedResponse: `{"status": "already liked"}`,
 		},
 		{
 			name:             "Incorrect ID In Path",
@@ -722,7 +571,7 @@ func TestAlbumDeliveryLike(t *testing.T) {
 			user:             &correctUser,
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
+			expectedResponse: `{"message": "invalid url parameter"}`,
 		},
 		{
 			name:             "No User",
@@ -730,7 +579,7 @@ func TestAlbumDeliveryLike(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
+			expectedResponse: `{"message": "unathorized"}`,
 		},
 		{
 			name:        "No Album To Like",
@@ -740,7 +589,7 @@ func TestAlbumDeliveryLike(t *testing.T) {
 				au.EXPECT().SetLike(correctAlbumID, correctUser.ID).Return(false, &models.NoSuchAlbumError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(albumNotFound),
+			expectedResponse: `{"message": "no such album"}`,
 		},
 		{
 			name:        "Server Error",
@@ -750,7 +599,7 @@ func TestAlbumDeliveryLike(t *testing.T) {
 				au.EXPECT().SetLike(correctAlbumID, correctUser.ID).Return(false, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.SetLikeServerError),
+			expectedResponse: `{"message": "can't set like"}`,
 		},
 	}
 
@@ -801,7 +650,7 @@ func TestAlbumDeliveryUnLike(t *testing.T) {
 				au.EXPECT().UnLike(correctAlbumID, correctUser.ID).Return(true, nil)
 			},
 			expectedStatus:   http.StatusOK,
-			expectedResponse: commonTests.OKResponse(commonHttp.UnLikeSuccess),
+			expectedResponse: `{"status": "ok"}`,
 		},
 		{
 			name:        "Wasn't Liked (Anyway Success)",
@@ -811,7 +660,7 @@ func TestAlbumDeliveryUnLike(t *testing.T) {
 				au.EXPECT().UnLike(correctAlbumID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
-			expectedResponse: commonTests.OKResponse(commonHttp.LikeDoesntExist),
+			expectedResponse: `{"status": "wasn't liked"}`,
 		},
 		{
 			name:             "Incorrect ID In Path",
@@ -819,7 +668,7 @@ func TestAlbumDeliveryUnLike(t *testing.T) {
 			user:             &correctUser,
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
+			expectedResponse: `{"message": "invalid url parameter"}`,
 		},
 		{
 			name:             "No User",
@@ -827,7 +676,7 @@ func TestAlbumDeliveryUnLike(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(au *albumMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
+			expectedResponse: `{"message": "unathorized"}`,
 		},
 		{
 			name:        "No Album To Unlike",
@@ -837,7 +686,7 @@ func TestAlbumDeliveryUnLike(t *testing.T) {
 				au.EXPECT().UnLike(correctAlbumID, correctUser.ID).Return(false, &models.NoSuchAlbumError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(albumNotFound),
+			expectedResponse: `{"message": "no such album"}`,
 		},
 		{
 			name:        "Server Error",
@@ -847,7 +696,7 @@ func TestAlbumDeliveryUnLike(t *testing.T) {
 				au.EXPECT().UnLike(correctAlbumID, correctUser.ID).Return(false, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(commonHttp.DeleteLikeServerError),
+			expectedResponse: `{"message": "can't remove like"}`,
 		},
 	}
 

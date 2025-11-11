@@ -12,15 +12,6 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 )
 
-// Response messages
-const (
-	tokenCheckFail    = "token check failed"
-	authDataCheckFail = "auth data check failed"
-
-	tokenGetServerError  = "server can't get access token"
-	authCheckServerErorr = "server can't check authorization"
-)
-
 type Middleware struct {
 	authServices  auth.Usecase
 	tokenServices token.Usecase
@@ -31,8 +22,7 @@ func NewMiddleware(u auth.Usecase, t token.Usecase, l logger.Logger) *Middleware
 	return &Middleware{
 		authServices:  u,
 		tokenServices: t,
-
-		logger: l,
+		logger:        l,
 	}
 }
 
@@ -40,16 +30,16 @@ func NewMiddleware(u auth.Usecase, t token.Usecase, l logger.Logger) *Middleware
 func (m *Middleware) Authorization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		token, err := commonHttp.GetAccessTokenFromCookie(r)
+		token, err := commonHttp.GetAcessTokenFromCookie(r)
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
-				m.logger.Infof("middleware: %v", err)
+				m.logger.Infof("middleware: %s", err.Error())
 				next.ServeHTTP(w, r) // no cookies
 				return
 			}
 
-			m.logger.Errorf("middleware: %v", err)
-			commonHttp.ErrorResponse(w, tokenGetServerError, http.StatusInternalServerError, m.logger)
+			m.logger.Errorf("middleware: %s", err.Error())
+			commonHttp.ErrorResponse(w, "server error", http.StatusInternalServerError, m.logger) // server error
 			return
 		}
 		if token == "" {
@@ -60,22 +50,24 @@ func (m *Middleware) Authorization(next http.Handler) http.Handler {
 
 		userId, userVersion, err := m.tokenServices.CheckAccessToken(token)
 		if err != nil {
-			m.logger.Infof("middleware: %v", err)
-			commonHttp.ErrorResponse(w, tokenCheckFail, http.StatusBadRequest, m.logger) // token check failed
+			m.logger.Infof("middleware: %s", err.Error())
+			commonHttp.SetAcessTokenCookie(w, "")
+			commonHttp.ErrorResponse(w, "token check failed", http.StatusBadRequest, m.logger) // token check failed
 			return
 		}
 
-		user, err := m.authServices.GetUserByAuthData(userId, userVersion)
+		user, err := m.authServices.GetUserByAuthData(r.Context(), userId, userVersion)
 		if err != nil {
 			var errNoSuchUser *models.NoSuchUserError
 			if errors.As(err, &errNoSuchUser) {
-				m.logger.Infof("middleware: %v", err)
-				commonHttp.ErrorResponse(w, authDataCheckFail, http.StatusBadRequest, m.logger) // auth data check failed
+				m.logger.Infof("middleware: %s", err.Error())
+				commonHttp.SetAcessTokenCookie(w, "")
+				commonHttp.ErrorResponse(w, "auth data check failed", http.StatusBadRequest, m.logger) // auth data check failed
 				return
 			}
 
-			m.logger.Errorf("middleware: %v", err)
-			commonHttp.ErrorResponse(w, authCheckServerErorr, http.StatusInternalServerError, m.logger)
+			m.logger.Errorf("middleware: %s", err.Error())
+			commonHttp.ErrorResponse(w, "server failed to check authorization", http.StatusInternalServerError, m.logger)
 			return
 		}
 

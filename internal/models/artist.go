@@ -10,47 +10,24 @@ type Artist struct {
 type ArtistTransfer struct {
 	ID        uint32 `json:"id"`
 	Name      string `json:"name"`
-	IsLiked   bool   `json:"isLiked"`
 	AvatarSrc string `json:"cover"`
 }
 
-type artistLikeChecker func(artistID, userID uint32) (bool, error)
-
 // ArtistTransferFromEntry converts Artist to ArtistTransfer
-func ArtistTransferFromEntry(a Artist, user *User,
-	likeChecker artistLikeChecker) (ArtistTransfer, error) {
-
-	var isLiked bool
-	var err error
-
-	if user != nil {
-		isLiked, err = likeChecker(a.ID, user.ID)
-		if err != nil {
-			return ArtistTransfer{}, err
-		}
-	}
-
+func ArtistTransferFromEntry(artist Artist) ArtistTransfer {
 	return ArtistTransfer{
-		ID:        a.ID,
-		Name:      a.Name,
-		IsLiked:   isLiked,
-		AvatarSrc: a.AvatarSrc,
-	}, nil
+		ID:        artist.ID,
+		Name:      artist.Name,
+		AvatarSrc: artist.AvatarSrc,
+	}
 }
 
 // ArtistTransferFromQuery converts []Artist to []ArtistTransfer
-func ArtistTransferFromQuery(artists []Artist, user *User,
-	likeChecker artistLikeChecker) ([]ArtistTransfer, error) {
-
+func ArtistTransferFromQuery(artists []Artist) []ArtistTransfer {
 	artistTransfers := make([]ArtistTransfer, 0, len(artists))
 	for _, a := range artists {
-		at, err := ArtistTransferFromEntry(a, user, likeChecker)
-		if err != nil {
-			return nil, err
-		}
-
-		artistTransfers = append(artistTransfers, at)
+		artistTransfers = append(artistTransfers, ArtistTransferFromEntry(a))
 	}
 
-	return artistTransfers, nil
+	return artistTransfers
 }
