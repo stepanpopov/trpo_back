@@ -1,27 +1,19 @@
 package app
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 	"github.com/jmoiron/sqlx"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/api/init/router"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/internal/db/postgresql"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/app/internal/db/postgresql"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/app/internal/init/router"
 
 	albumRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/album/repository/postgresql"
 	artistRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/repository/postgresql"
+	authRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/repository/postgresql"
 	playlistRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/playlist/repository/postgresql"
 	trackRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track/repository/postgresql"
 	userRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/repository/postgresql"
-
-	authAgent "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/client/grpc"
-	authProto "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/microservice/grpc/proto"
 
 	albumUsecase "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/album/usecase"
 	artistUsecase "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/usecase"
@@ -44,26 +36,18 @@ import (
 	userMiddlware "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/delivery/http/middleware"
 )
 
-type Agents struct {
-	*authAgent.AuthAgent
-}
-
-func Init(db *sqlx.DB, tables postgresql.PostgreSQLTables, logger logger.Logger) (*chi.Mux, error) {
+func Init(db *sqlx.DB, tables postgresql.PostgreSQLTables, logger logger.Logger) *chi.Mux {
 	albumRepo := albumRepository.NewPostgreSQL(db, tables, logger)
 	playlistRepo := playlistRepository.NewPostgreSQL(db, tables, logger)
 	artistRepo := artistRepository.NewPostgreSQL(db, tables, logger)
+	authRepo := authRepository.NewPostgreSQL(db, tables, logger)
 	trackRepo := trackRepository.NewPostgreSQL(db, tables, logger)
 	userRepo := userRepository.NewPostgreSQL(db, tables, logger)
-
-	agents, err := makeAgents()
-	if err != nil {
-		return nil, err
-	}
 
 	albumUsecase := albumUsecase.NewUsecase(albumRepo, artistRepo, logger)
 	playlistUsecase := playlistUsecase.NewUsecase(playlistRepo, trackRepo, userRepo, logger)
 	artistUsecase := artistUsecase.NewUsecase(artistRepo, logger)
-	authUsecase := authUsecase.NewUsecase(agents.AuthAgent, logger)
+	authUsecase := authUsecase.NewUsecase(authRepo, userRepo, logger)
 	trackUsecase := trackUsecase.NewUsecase(trackRepo, artistRepo, albumRepo, playlistRepo, logger)
 	userUsecase := userUsecase.NewUsecase(userRepo, logger)
 	tokenUsecase := tokenUsecase.NewUsecase(logger)
@@ -92,17 +76,5 @@ func Init(db *sqlx.DB, tables postgresql.PostgreSQLTables, logger logger.Logger)
 		csrfHandler,
 		csrfMiddlware,
 		logger,
-	), nil
-}
-
-func makeAgents() (*Agents, error) {
-	grpcAuthConn, err := grpc.Dial(fmt.Sprintf("%s:%s", os.Getenv(cmd.AuthHostParam), os.Getenv(cmd.AuthPortParam)),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("can't connect to auth service: %v", err)
-	}
-
-	return &Agents{
-		AuthAgent: authAgent.NewAuthAgent(authProto.NewAuthorizationClient(grpcAuthConn)),
-	}, nil
+	)
 }
