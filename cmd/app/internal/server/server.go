@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -26,10 +27,10 @@ type runConfig struct {
 	ServerPort string
 }
 
-func initServerRunConfig(host, port string) (runConfig, error) {
+func initServerRunConfig() (runConfig, error) {
 	cfg := runConfig{
-		ServerPort: port,
-		ServerHost: host,
+		ServerPort: os.Getenv("SERVER_PORT"),
+		ServerHost: os.Getenv("SERVER_HOST"),
 	}
 
 	if strings.TrimSpace(cfg.ServerPort) == "" ||
@@ -41,8 +42,8 @@ func initServerRunConfig(host, port string) (runConfig, error) {
 	return cfg, nil
 }
 
-func (s *Server) Init(host, port string, handler http.Handler) error {
-	cfg, err := initServerRunConfig(host, port)
+func (s *Server) Init(handler http.Handler) error {
+	cfg, err := initServerRunConfig()
 	if err != nil {
 		return fmt.Errorf("can't init server config: %w", err)
 	}

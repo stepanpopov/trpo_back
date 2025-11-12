@@ -1,7 +1,6 @@
 package postgresql
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -28,7 +27,7 @@ func NewPostgreSQL(db *sqlx.DB, t auth.Tables, l logger.Logger) *PostgreSQL {
 	}
 }
 
-func (p *PostgreSQL) GetUserByAuthData(ctx context.Context, userID, userVersion uint32) (*models.User, error) {
+func (p *PostgreSQL) GetUserByAuthData(userID, userVersion uint32) (*models.User, error) {
 	query := fmt.Sprintf(
 		`SELECT id, version, username, email, password_hash, salt, 
 			first_name, last_name, sex, birth_date, avatar_src 
@@ -52,7 +51,7 @@ func (p *PostgreSQL) GetUserByAuthData(ctx context.Context, userID, userVersion 
 	return &u, nil
 }
 
-func (p *PostgreSQL) IncreaseUserVersion(ctx context.Context, userID uint32) error {
+func (p *PostgreSQL) IncreaseUserVersion(userID uint32) error {
 	query := fmt.Sprintf(
 		`UPDATE %s
 		SET version = version + 1
@@ -74,7 +73,7 @@ func (p *PostgreSQL) IncreaseUserVersion(ctx context.Context, userID uint32) err
 	return nil
 }
 
-func (p *PostgreSQL) UpdatePassword(ctx context.Context, userID uint32, passwordHash, salt string) error {
+func (p *PostgreSQL) UpdatePassword(userID uint32, passwordHash, salt string) error {
 	query := fmt.Sprintf(
 		`UPDATE %s
 		SET password_hash = $1,
