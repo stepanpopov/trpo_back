@@ -13,7 +13,6 @@ type Usecase interface {
 	GetByID(userID uint32) (*models.User, error)
 	UpdateInfo(user *models.User) error
 	UploadAvatar(userID uint32, file io.ReadSeeker, fileExtension string) error
-	UploadAvatarWrongFormatError() error
 	GetByPlaylist(playlistID uint32) ([]models.User, error)
 }
 
@@ -37,11 +36,6 @@ type Repository interface {
 
 	// GetUserByPlaylist returns []models.User of users who are authors of playlist
 	GetByPlaylist(playlistID uint32) ([]models.User, error)
-}
-
-// Agent ...
-type Agent interface {
-	CreateUser(user models.User) 
 }
 
 // Tables includes methods which return needed tables
