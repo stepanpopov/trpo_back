@@ -1,9 +1,5 @@
 package models
 
-import (
-	"context"
-)
-
 type Track struct {
 	ID            uint32  `db:"id"`
 	Name          string  `db:"name"`
@@ -26,27 +22,27 @@ type TrackTransfer struct {
 	RecordSrc     string           `json:"recordSrc"`
 }
 
-type artistsByTrackGetter func(ctx context.Context, trackID uint32) ([]Artist, error)
-type trackLikeChecker func(ctx context.Context, trackID, userID uint32) (bool, error)
+type artistsByTrackGetter func(trackID uint32) ([]Artist, error)
+type trackLikeChecker func(trackID, userID uint32) (bool, error)
 
 // TrackTransferFromEntry converts Track to TrackTransfer
-func TrackTransferFromEntry(ctx context.Context, t Track, user *User, likeChecker trackLikeChecker,
+func TrackTransferFromEntry(t Track, user *User, likeChecker trackLikeChecker,
 	artistLikeChecker artistLikeChecker, artistsGetter artistsByTrackGetter) (TrackTransfer, error) {
 
-	artists, err := artistsGetter(ctx, t.ID)
+	artists, err := artistsGetter(t.ID)
 	if err != nil {
 		return TrackTransfer{}, err
 	}
 
 	var isLiked = false
 	if user != nil {
-		isLiked, err = likeChecker(ctx, t.ID, user.ID)
+		isLiked, err = likeChecker(t.ID, user.ID)
 		if err != nil {
 			return TrackTransfer{}, err
 		}
 	}
 
-	at, err := ArtistTransferFromQuery(ctx, artists, user, artistLikeChecker)
+	at, err := ArtistTransferFromQuery(artists, user, artistLikeChecker)
 	if err != nil {
 		return TrackTransfer{}, err
 	}
@@ -65,12 +61,12 @@ func TrackTransferFromEntry(ctx context.Context, t Track, user *User, likeChecke
 }
 
 // TrackTransferFromQuery converts []Track to []TrackTransfer
-func TrackTransferFromQuery(ctx context.Context, tracks []Track, user *User, likeChecker trackLikeChecker,
+func TrackTransferFromQuery(tracks []Track, user *User, likeChecker trackLikeChecker,
 	artistLikeChecker artistLikeChecker, artistsGetter artistsByTrackGetter) ([]TrackTransfer, error) {
 
 	trackTransfers := make([]TrackTransfer, 0, len(tracks))
 	for _, t := range tracks {
-		trackTransfer, err := TrackTransferFromEntry(ctx, t, user, likeChecker, artistLikeChecker, artistsGetter)
+		trackTransfer, err := TrackTransferFromEntry(t, user, likeChecker, artistLikeChecker, artistsGetter)
 		if err != nil {
 			return nil, err
 		}

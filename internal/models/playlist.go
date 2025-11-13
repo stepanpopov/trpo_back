@@ -1,9 +1,5 @@
 package models
 
-import (
-	"context"
-)
-
 type Playlist struct {
 	ID          uint32  `db:"id"`
 	Name        string  `db:"name"`
@@ -20,21 +16,21 @@ type PlaylistTransfer struct {
 	CoverSrc    string         `json:"cover,omitempty"`
 }
 
-type usersByPlaylistsGetter func(ctx context.Context, playlistID uint32) ([]User, error)
-type playlistLikeChecker func(ctx context.Context, playlistID, userID uint32) (bool, error)
+type usersByPlaylistsGetter func(playlistID uint32) ([]User, error)
+type playlistLikeChecker func(playlistID, userID uint32) (bool, error)
 
 // PlaylistTransferFromEntry converts Playlist to PlaylistTransfer
-func PlaylistTransferFromEntry(ctx context.Context, p Playlist, user *User, likeChecker playlistLikeChecker,
+func PlaylistTransferFromEntry(p Playlist, user *User, likeChecker playlistLikeChecker,
 	usersGetter usersByPlaylistsGetter) (PlaylistTransfer, error) {
 
-	users, err := usersGetter(ctx, p.ID)
+	users, err := usersGetter(p.ID)
 	if err != nil {
 		return PlaylistTransfer{}, err
 	}
 
 	isLiked := false
 	if user != nil {
-		isLiked, err = likeChecker(ctx, p.ID, user.ID)
+		isLiked, err = likeChecker(p.ID, user.ID)
 		if err != nil {
 			return PlaylistTransfer{}, err
 		}
@@ -51,13 +47,13 @@ func PlaylistTransferFromEntry(ctx context.Context, p Playlist, user *User, like
 }
 
 // PlaylistTransferFromQuery converts []Playlist to []PlaylistTransfer
-func PlaylistTransferFromQuery(ctx context.Context, playlists []Playlist, user *User, likeChecker playlistLikeChecker,
+func PlaylistTransferFromQuery(playlists []Playlist, user *User, likeChecker playlistLikeChecker,
 	usersGetter usersByPlaylistsGetter) ([]PlaylistTransfer, error) {
 
 	playlistTransfers := make([]PlaylistTransfer, 0, len(playlists))
 
 	for _, p := range playlists {
-		pt, err := PlaylistTransferFromEntry(ctx, p, user, likeChecker, usersGetter)
+		pt, err := PlaylistTransferFromEntry(p, user, likeChecker, usersGetter)
 		if err != nil {
 			return nil, err
 		}
