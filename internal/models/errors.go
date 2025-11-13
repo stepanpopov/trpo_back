@@ -60,15 +60,21 @@ type NoSuchUserError struct {
 }
 
 func (e *NoSuchUserError) Error() string {
+	if e.UserID == 0 {
+		return "user doesn't exist"
+	}
 	return fmt.Sprintf("user #%d doesn't exist", e.UserID)
 }
 
 type IncorrectPasswordError struct {
-	UserId uint32
+	UserID uint32
 }
 
 func (e *IncorrectPasswordError) Error() string {
-	return fmt.Sprintf("incorrect password for user #%d", e.UserId)
+	if e.UserID == 0 {
+		return "incorrect password for user"
+	}
+	return fmt.Sprintf("incorrect password for user #%d", e.UserID)
 }
 
 type UnathorizedError struct{}
@@ -77,18 +83,15 @@ func (e *UnathorizedError) Error() string {
 	return "unathorized"
 }
 
-type AvatarWrongFormatError struct {
-	FileType string
-}
-
-func (e *AvatarWrongFormatError) Error() string {
-	return fmt.Sprintf("avatar wrong format: %s", e.FileType)
-}
-
-type CoverWrongFormatError struct {
-	FileType string
-}
-
-func (e *CoverWrongFormatError) Error() string {
-	return fmt.Sprintf("acover wrong format: %s", e.FileType)
-}
+const (  // Not used
+	NoSuchTrackStatusCode uint32 = iota
+	NoSuchAlbumStatusCode
+	NoSuchPlaylistStatusCode
+	NoSuchArtistStatusCode
+	ForbiddenUserStatusCode
+	UserAlreadyExistsStatusCode
+	NoSuchUserStatusCode
+	IncorrectPasswordStatusCode
+	UnathorizedStatusCode
+	OtherStatusCode
+)

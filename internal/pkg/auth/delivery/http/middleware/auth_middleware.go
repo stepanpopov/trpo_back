@@ -66,7 +66,7 @@ func (m *Middleware) Authorization(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := m.authServices.GetUserByAuthData(userId, userVersion)
+		user, err := m.authServices.GetUserByAuthData(r.Context(), userId, userVersion)
 		if err != nil {
 			var errNoSuchUser *models.NoSuchUserError
 			if errors.As(err, &errNoSuchUser) {
