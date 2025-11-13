@@ -36,6 +36,7 @@ func checkTransaction(tx *sql.Tx, repoError *error) {
 
 	} else {
 		if err := tx.Commit(); err != nil {
+			_ = tx.Rollback()
 			*repoError = fmt.Errorf("(repo) failed to Commit: %w: %w", err, *repoError)
 		}
 	}

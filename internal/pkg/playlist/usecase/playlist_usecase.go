@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -103,6 +104,12 @@ func (u *Usecase) UpdateInfoAndMembers(playlist models.Playlist, usersID []uint3
 
 var dirForPlaylistCovers = filepath.Join(commonFile.MediaPath(), commonFile.PlaylistCoverFolder())
 
+var ErrCoverWrongFormat = errors.New("wrong cover file fromat")
+
+func (u *Usecase) UploadCoverWrongFormatError() error {
+	return ErrCoverWrongFormat
+}
+
 func (u *Usecase) UploadCover(playlistID uint32, userID uint32, file io.ReadSeeker, fileExtension string) error {
 	playlist, err := u.playlistRepo.GetByID(playlistID)
 	if err != nil {
@@ -119,7 +126,10 @@ func (u *Usecase) UploadCover(playlistID uint32, userID uint32, file io.ReadSeek
 
 	// Check format
 	if fileType, err := commonFile.CheckMimeType(file, "image/png", "image/jpeg"); err != nil {
-		return fmt.Errorf("(usecase) file format %s: %w", fileType, &models.CoverWrongFormatError{FileType: fileType})
+		return fmt.Errorf("(usecase) file format %s: %w", fileType, ErrCoverWrongFormat)
+	}
+	if _, err := file.Seek(0, 0); err != nil {
+		return fmt.Errorf("(usecase) can't do file seek: %w", err)
 	}
 
 	filenameWithExtension, _, err := commonFile.CreateFile(file, fileExtension, dirForPlaylistCovers)

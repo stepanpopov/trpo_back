@@ -127,8 +127,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	extension := filepath.Ext(avatarHeader.Filename)
 	err = h.userServices.UploadAvatar(user.ID, avatarFile, extension)
 	if err != nil {
-		var errAvatarWrongFormat *models.AvatarWrongFormatError
-		if errors.As(err, &errAvatarWrongFormat) {
+		if errors.Is(err, h.userServices.UploadAvatarWrongFormatError()) {
 			commonHttp.ErrorResponseWithErrLogging(w, userAvatarUploadInvalidDataType, http.StatusBadRequest, h.logger, err)
 			return
 		}

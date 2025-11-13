@@ -167,8 +167,7 @@ func (h *Handler) UploadCover(w http.ResponseWriter, r *http.Request) {
 
 	err = h.playlistServices.UploadCover(playlistRequestID, user.ID, coverFile, extension)
 	if err != nil {
-		var errCoverWrongFormat *models.CoverWrongFormatError
-		if errors.As(err, &errCoverWrongFormat) {
+		if errors.Is(err, h.playlistServices.UploadCoverWrongFormatError()) {
 			commonHttp.ErrorResponseWithErrLogging(w, playlistCoverInvalidDataType, http.StatusBadRequest, h.logger, err)
 			return
 		}
@@ -526,7 +525,7 @@ func (h *Handler) GetFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at, err := models.PlaylistTransferFromQuery(favPlaylists, user, h.playlistServices.IsLiked, h.userServices.GetByPlaylist)
+	at, err := models.PlaylistTransferFromQuery(favPlaylists, user, h.trackServices.IsLiked, h.userServices.GetByPlaylist)
 	if err != nil {
 		commonHttp.ErrorResponseWithErrLogging(w, playlistsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
@@ -608,7 +607,7 @@ func (h *Handler) UnLike(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		commonHttp.ErrorResponseWithErrLogging(w, commonHttp.DeleteLikeServerError, http.StatusInternalServerError, h.logger, err)
+		commonHttp.ErrorResponseWithErrLogging(w, commonHttp.SetLikeServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 

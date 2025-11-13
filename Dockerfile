@@ -1,22 +1,11 @@
-FROM golang:1.20-alpine
+FROM golang:1.20
 
-# Set the Current Working Directory inside the container
-WORKDIR /api
-
-# We want to populate the module cache based on the go.{mod,sum} files.
-COPY go.mod .
-COPY go.sum .
-
-RUN go mod download
+WORKDIR /app
 
 COPY . .
 
-# Build the Go app
-RUN go build -o ./out/api ./cmd/api/main.go
+RUN go build cmd/api/main.go
 
-
-# This container exposes port 8080 to the outside world
 EXPOSE 4444
 
-# Run the binary program produced by `go install`
-CMD ["./out/api"]
+CMD ["./main"]

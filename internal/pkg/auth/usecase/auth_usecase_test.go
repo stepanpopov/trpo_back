@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	userMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/mocks"
 )
 
+var ctx = context.Background()
+
 func TestUsecaseAuthCreateUser(t *testing.T) {
 	// Init
 	type mockBehavior func(r *userMocks.MockRepository, u models.User)
@@ -24,12 +27,12 @@ func TestUsecaseAuthCreateUser(t *testing.T) {
 
 	c := gomock.NewController(t)
 
-	authMocksRepo := authMocks.NewMockRepository(c)
+	authMocksAgent := authMocks.NewMockAgent(c)
 	userMocksRepo := userMocks.NewMockRepository(c)
 
 	l := commonTests.MockLogger(c)
 
-	u := NewUsecase(authMocksRepo, userMocksRepo, l)
+	u := NewUsecase(authMocksAgent, l)
 
 	birthTime, err := time.Parse(time.RFC3339, "2003-08-23T00:00:00Z")
 	require.NoError(t, err, "can't Parse birth date")
@@ -67,7 +70,7 @@ func TestUsecaseAuthCreateUser(t *testing.T) {
 	for _, tc := range testTable {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.mockBehavior(userMocksRepo, tc.user)
-			id, err := u.SignUpUser(tc.user)
+			id, err := u.SignUpUser(ctx, tc.user)
 
 			assert.Equal(t, tc.expected.Id, id)
 			assert.Equal(t, tc.expected.Err, err)
