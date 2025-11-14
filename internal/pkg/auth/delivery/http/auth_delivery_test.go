@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -18,6 +19,8 @@ import (
 	authMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/mocks"
 	tokenMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/token/mocks"
 )
+
+var ctx = context.Background()
 
 func TestDeliverySignUp(t *testing.T) {
 	// Init
@@ -70,7 +73,7 @@ func TestDeliverySignUp(t *testing.T) {
 			requestBody:  correctTestRequestBody,
 			userFromBody: correctTestUser,
 			mockBehavior: func(a *authMocks.MockUsecase, u models.User) {
-				a.EXPECT().SignUpUser(u).Return(uint32(1), nil)
+				a.EXPECT().SignUpUser(ctx, u).Return(uint32(1), nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: `{"id": 1}`,
@@ -104,7 +107,7 @@ func TestDeliverySignUp(t *testing.T) {
 			requestBody:  correctTestRequestBody,
 			userFromBody: correctTestUser,
 			mockBehavior: func(a *authMocks.MockUsecase, u models.User) {
-				a.EXPECT().SignUpUser(u).Return(uint32(0), &models.UserAlreadyExistsError{})
+				a.EXPECT().SignUpUser(ctx, u).Return(uint32(0), &models.UserAlreadyExistsError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(userAlreadyExists),
@@ -114,7 +117,7 @@ func TestDeliverySignUp(t *testing.T) {
 			requestBody:  correctTestRequestBody,
 			userFromBody: correctTestUser,
 			mockBehavior: func(a *authMocks.MockUsecase, u models.User) {
-				a.EXPECT().SignUpUser(u).Return(uint32(0), fmt.Errorf("database query error"))
+				a.EXPECT().SignUpUser(ctx, u).Return(uint32(0), fmt.Errorf("database query error"))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(userSignUpServerError),
@@ -176,7 +179,7 @@ func TestDeliveryLogin(t *testing.T) {
 			mockBehavior: func(a *authMocks.MockUsecase, t *tokenMocks.MockUsecase, l loginInput) {
 				user := &models.User{ID: randomUserID, Version: uint32(rand.Intn(100))}
 
-				a.EXPECT().GetUserByCreds(l.Username, l.Password).Return(user, nil)
+				a.EXPECT().GetUserByCreds(ctx, l.Username, l.Password).Return(user, nil)
 				t.EXPECT().GenerateAccessToken(user.ID, user.Version).Return("token", nil)
 			},
 			expectedStatus:      http.StatusOK,
@@ -211,7 +214,7 @@ func TestDeliveryLogin(t *testing.T) {
 			requestBody:   correctTestRequestBody,
 			loginFromBody: correctTestLogin,
 			mockBehavior: func(a *authMocks.MockUsecase, t *tokenMocks.MockUsecase, l loginInput) {
-				a.EXPECT().GetUserByCreds(l.Username, l.Password).Return(&models.User{}, &models.NoSuchUserError{})
+				a.EXPECT().GetUserByCreds(ctx, l.Username, l.Password).Return(&models.User{}, &models.NoSuchUserError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(userNotFound),
@@ -222,7 +225,7 @@ func TestDeliveryLogin(t *testing.T) {
 			requestBody:   correctTestRequestBody,
 			loginFromBody: correctTestLogin,
 			mockBehavior: func(a *authMocks.MockUsecase, t *tokenMocks.MockUsecase, l loginInput) {
-				a.EXPECT().GetUserByCreds(l.Username, l.Password).Return(&models.User{}, &models.IncorrectPasswordError{})
+				a.EXPECT().GetUserByCreds(ctx, l.Username, l.Password).Return(&models.User{}, &models.IncorrectPasswordError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(passwordMismatch),
@@ -233,7 +236,7 @@ func TestDeliveryLogin(t *testing.T) {
 			requestBody:   correctTestRequestBody,
 			loginFromBody: correctTestLogin,
 			mockBehavior: func(a *authMocks.MockUsecase, t *tokenMocks.MockUsecase, l loginInput) {
-				a.EXPECT().GetUserByCreds(l.Username, l.Password).Return(&models.User{}, errors.New("database error"))
+				a.EXPECT().GetUserByCreds(ctx, l.Username, l.Password).Return(&models.User{}, errors.New("database error"))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(userLoginServerError),
@@ -246,7 +249,7 @@ func TestDeliveryLogin(t *testing.T) {
 			mockBehavior: func(a *authMocks.MockUsecase, t *tokenMocks.MockUsecase, l loginInput) {
 				user := &models.User{ID: uint32(rand.Intn(100)), Version: uint32(rand.Intn(100))}
 
-				a.EXPECT().GetUserByCreds(l.Username, l.Password).Return(user, nil)
+				a.EXPECT().GetUserByCreds(ctx, l.Username, l.Password).Return(user, nil)
 				t.EXPECT().GenerateAccessToken(user.ID, user.Version).Return("", errors.New("generating token error"))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -307,7 +310,7 @@ func TestDeliveryLogout(t *testing.T) {
 			name: "Common",
 			user: correctTestUser,
 			mockBehavior: func(a *authMocks.MockUsecase, user *models.User) {
-				a.EXPECT().IncreaseUserVersion(user.ID).Return(nil)
+				a.EXPECT().IncreaseUserVersion(ctx, user.ID).Return(nil)
 			},
 			expectedStatus:       http.StatusOK,
 			expectedResponse:     commonTests.OKResponse(userLogedOutSuccessfully),
@@ -334,7 +337,7 @@ func TestDeliveryLogout(t *testing.T) {
 			name: "Failed to increase user version",
 			user: correctTestUser,
 			mockBehavior: func(a *authMocks.MockUsecase, user *models.User) {
-				a.EXPECT().IncreaseUserVersion(user.ID).Return(fmt.Errorf("database error"))
+				a.EXPECT().IncreaseUserVersion(ctx, user.ID).Return(fmt.Errorf("database error"))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(userLogoutServerError),
