@@ -11,12 +11,10 @@ import (
 
 	"github.com/joho/godotenv" // load environment
 
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/api/init/app"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/api/init/server"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/internal/db/postgresql"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/app/internal/db/postgresql"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/app/internal/init/app"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/app/internal/server"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/file"
-	commonHttp "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http"
 
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 )
@@ -39,7 +37,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	logger, err := logger.NewLogger(commonHttp.GetReqIDFromRequest)
+	logger, err := logger.NewLogger()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "logger can not be defined: %v\n", err)
 		return
@@ -56,14 +54,10 @@ func main() {
 		return
 	}
 
-	router, err := app.Init(db, tables, logger)
-	if err != nil {
-		logger.Errorf("error while initialization api app: %v", err)
-		return
-	}
+	router := app.Init(db, tables, logger)
 
 	var srv server.Server
-	if err := srv.Init(os.Getenv(cmd.ApiPortParam), router); err != nil {
+	if err := srv.Init(router); err != nil {
 		logger.Errorf("error while launching server: %v", err)
 	}
 
@@ -76,7 +70,7 @@ func main() {
 	logger.Info("trying to launch server")
 
 	timer := time.AfterFunc(2*time.Second, func() {
-		logger.Infof("server launched at :%s", os.Getenv(cmd.ApiPortParam))
+		logger.Infof("server launched at %s:%s", os.Getenv("SERVER_HOST"), os.Getenv("SERVER_PORT"))
 	})
 	defer timer.Stop()
 

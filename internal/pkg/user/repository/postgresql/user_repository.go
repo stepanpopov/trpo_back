@@ -1,7 +1,6 @@
 package postgresql
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -32,7 +31,7 @@ func NewPostgreSQL(db *sqlx.DB, t user.Tables, l logger.Logger) *PostgreSQL {
 
 const errorUserExists = "unique_violation"
 
-func (p *PostgreSQL) GetByID(ctx context.Context, userID uint32) (*models.User, error) {
+func (p *PostgreSQL) GetByID(userID uint32) (*models.User, error) {
 	query := fmt.Sprintf(
 		`SELECT id, 
 				version, 
@@ -49,7 +48,7 @@ func (p *PostgreSQL) GetByID(ctx context.Context, userID uint32) (*models.User, 
 		WHERE id = $1;`,
 		p.tables.Users())
 
-	row := p.db.QueryRowContext(ctx, query, userID)
+	row := p.db.QueryRow(query, userID)
 	var u models.User
 	err := row.Scan(&u.ID, &u.Version, &u.Username, &u.Email, &u.Password, &u.Salt,
 		&u.FirstName, &u.LastName, &u.Sex, &u.BirthDate.Time, &u.AvatarSrc)
@@ -65,14 +64,14 @@ func (p *PostgreSQL) GetByID(ctx context.Context, userID uint32) (*models.User, 
 	return &u, nil
 }
 
-func (p *PostgreSQL) CreateUser(ctx context.Context, u models.User) (uint32, error) {
+func (p *PostgreSQL) CreateUser(u models.User) (uint32, error) {
 	query := fmt.Sprintf(
 		`INSERT INTO %s 
 			(username, email, password_hash, salt, first_name, last_name, sex, birth_date, avatar_src) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;`,
 		p.tables.Users())
 
-	row := p.db.QueryRowContext(ctx, query, u.Username, u.Email, u.Password, u.Salt,
+	row := p.db.QueryRow(query, u.Username, u.Email, u.Password, u.Salt,
 		u.FirstName, u.LastName, u.Sex, u.BirthDate.Format(time.RFC3339), u.AvatarSrc)
 
 	var id uint32
@@ -91,13 +90,13 @@ func (p *PostgreSQL) CreateUser(ctx context.Context, u models.User) (uint32, err
 	return id, nil
 }
 
-func (p *PostgreSQL) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+func (p *PostgreSQL) GetUserByUsername(username string) (*models.User, error) {
 	query := fmt.Sprintf(
 		`SELECT id, version, username, email, password_hash, salt, 
 			first_name, last_name, sex, birth_date 
 		FROM %s WHERE (username=$1 OR email=$1);`,
 		p.tables.Users())
-	row := p.db.QueryRowContext(ctx, query, username)
+	row := p.db.QueryRow(query, username)
 
 	var u models.User
 	err := row.Scan(&u.ID, &u.Version, &u.Username, &u.Email, &u.Password, &u.Salt,
@@ -114,17 +113,17 @@ func (p *PostgreSQL) GetUserByUsername(ctx context.Context, username string) (*m
 	return &u, nil
 }
 
-func (p *PostgreSQL) UpdateInfo(ctx context.Context, u *models.User) error {
+func (p *PostgreSQL) UpdateInfo(u *models.User) error {
 	query := fmt.Sprintf(
 		`UPDATE %s
 		SET email = $2,
 			first_name = $3,
 			last_name = $4,
 			sex = $5,
-			birth_date = $6,
+			birth_date = $6
 		WHERE id = $1;`,
 		p.tables.Users())
-	if _, err := p.db.ExecContext(ctx, query, u.ID, u.Email, u.FirstName, u.LastName,
+	if _, err := p.db.Exec(query, u.ID, u.Email, u.FirstName, u.LastName,
 		u.Sex, u.BirthDate.Format(time.RFC3339)); err != nil {
 
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
@@ -133,13 +132,13 @@ func (p *PostgreSQL) UpdateInfo(ctx context.Context, u *models.User) error {
 	return nil
 }
 
-func (p *PostgreSQL) UpdateAvatarSrc(ctx context.Context, userID uint32, avatarSrc string) error {
+func (p *PostgreSQL) UpdateAvatarSrc(userID uint32, avatarSrc string) error {
 	query := fmt.Sprintf(
 		`UPDATE %s
 		SET avatar_src = $2
 		WHERE id = $1;`,
 		p.tables.Users())
-	if _, err := p.db.ExecContext(ctx, query, userID, avatarSrc); err != nil {
+	if _, err := p.db.Exec(query, userID, avatarSrc); err != nil {
 
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -147,7 +146,7 @@ func (p *PostgreSQL) UpdateAvatarSrc(ctx context.Context, userID uint32, avatarS
 	return nil
 }
 
-func (p *PostgreSQL) GetByPlaylist(ctx context.Context, playlistID uint32) ([]models.User, error) {
+func (p *PostgreSQL) GetByPlaylist(playlistID uint32) ([]models.User, error) {
 	query := fmt.Sprintf(
 		`SELECT id,
 				username,
@@ -161,7 +160,7 @@ func (p *PostgreSQL) GetByPlaylist(ctx context.Context, playlistID uint32) ([]mo
 		WHERE up.playlist_id = $1;`,
 		p.tables.Users(), p.tables.UsersPlaylists())
 
-	rows, err := p.db.QueryContext(ctx, query, playlistID)
+	rows, err := p.db.Query(query, playlistID)
 	if err != nil {
 		return nil, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}

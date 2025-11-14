@@ -1,7 +1,6 @@
 package postgresql
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -29,7 +28,29 @@ func NewPostgreSQL(db *sqlx.DB, t album.Tables, l logger.Logger) *PostgreSQL {
 	}
 }
 
-func (p *PostgreSQL) Insert(ctx context.Context, album models.Album, artistsID []uint32) (_ uint32, err error) {
+func (p *PostgreSQL) Check(albumID uint32) error {
+	query := fmt.Sprintf(
+		`SELECT EXISTS(
+			SELECT id
+			FROM %s
+			WHERE id = $1
+		);`,
+		p.tables.Albums())
+
+	var exists bool
+	err := p.db.Get(&exists, query, albumID)
+	if err != nil {
+		return fmt.Errorf("(repo) failed to exec query: %w", err)
+	}
+
+	if !exists {
+		return fmt.Errorf("(repo) %w: %w", &models.NoSuchAlbumError{AlbumID: albumID}, err)
+	}
+
+	return nil
+}
+
+func (p *PostgreSQL) Insert(album models.Album, artistsID []uint32) (_ uint32, err error) {
 	tx, err := p.db.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("(repo) failed to begin transaction: %w", err)
@@ -48,7 +69,7 @@ func (p *PostgreSQL) Insert(ctx context.Context, album models.Album, artistsID [
 		p.tables.Albums())
 
 	var albumID uint32
-	row := tx.QueryRowContext(ctx, insertAlbumQuery, album.Name, album.Description, album.CoverSrc)
+	row := tx.QueryRow(insertAlbumQuery, album.Name, album.Description, album.CoverSrc)
 	if err := row.Scan(&albumID); err != nil {
 		return 0, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -59,7 +80,7 @@ func (p *PostgreSQL) Insert(ctx context.Context, album models.Album, artistsID [
 		p.tables.ArtistsAlbums())
 
 	for _, artistID := range artistsID {
-		if _, err := tx.ExecContext(ctx, insertAlbumArtistsQuery, artistID, albumID); err != nil {
+		if _, err := tx.Exec(insertAlbumArtistsQuery, artistID, albumID); err != nil {
 			return 0, fmt.Errorf("(repo) failed to exec query: %w", err)
 		}
 	}
@@ -67,7 +88,7 @@ func (p *PostgreSQL) Insert(ctx context.Context, album models.Album, artistsID [
 	return albumID, nil
 }
 
-func (p *PostgreSQL) GetByID(ctx context.Context, albumID uint32) (*models.Album, error) {
+func (p *PostgreSQL) GetByID(albumID uint32) (*models.Album, error) {
 	query := fmt.Sprintf(
 		`SELECT id, name, description, cover_src 
 		FROM %s 
@@ -76,7 +97,7 @@ func (p *PostgreSQL) GetByID(ctx context.Context, albumID uint32) (*models.Album
 
 	var album models.Album
 
-	if err := p.db.GetContext(ctx, &album, query, albumID); err != nil {
+	if err := p.db.Get(&album, query, albumID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchAlbumError{AlbumID: albumID}, err)
 		}
@@ -87,14 +108,14 @@ func (p *PostgreSQL) GetByID(ctx context.Context, albumID uint32) (*models.Album
 	return &album, nil
 }
 
-func (p *PostgreSQL) DeleteByID(ctx context.Context, albumID uint32) error {
+func (p *PostgreSQL) DeleteByID(albumID uint32) error {
 	query := fmt.Sprintf(
 		`DELETE
 		FROM %s
 		WHERE id = $1;`,
 		p.tables.Albums())
 
-	resExec, err := p.db.ExecContext(ctx, query, albumID)
+	resExec, err := p.db.Exec(query, albumID)
 	if err != nil {
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -110,22 +131,22 @@ func (p *PostgreSQL) DeleteByID(ctx context.Context, albumID uint32) error {
 	return nil
 }
 
-func (p *PostgreSQL) GetFeed(ctx context.Context) ([]models.Album, error) {
+func (p *PostgreSQL) GetFeed(amountLimit int) ([]models.Album, error) {
 	query := fmt.Sprintf(
 		`SELECT id, name, description, cover_src  
 		FROM %s 
-		LIMIT 100;`,
-		p.tables.Albums())
+		LIMIT %d;`,
+		p.tables.Albums(), amountLimit)
 
 	var albums []models.Album
-	if err := p.db.SelectContext(ctx, &albums, query); err != nil {
+	if err := p.db.Select(&albums, query); err != nil {
 		return nil, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
 	return albums, nil
 }
 
-func (p *PostgreSQL) GetByArtist(ctx context.Context, artistID uint32) ([]models.Album, error) {
+func (p *PostgreSQL) GetByArtist(artistID uint32) ([]models.Album, error) {
 	query := fmt.Sprintf(
 		`SELECT a.id, a.name, a.description, a.cover_src 
 		FROM %s a
@@ -134,7 +155,7 @@ func (p *PostgreSQL) GetByArtist(ctx context.Context, artistID uint32) ([]models
 		p.tables.Albums(), p.tables.ArtistsAlbums())
 
 	var albums []models.Album
-	if err := p.db.SelectContext(ctx, &albums, query, artistID); err != nil {
+	if err := p.db.Select(&albums, query, artistID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchArtistError{ArtistID: artistID}, err)
 		}
@@ -145,7 +166,7 @@ func (p *PostgreSQL) GetByArtist(ctx context.Context, artistID uint32) ([]models
 	return albums, nil
 }
 
-func (p *PostgreSQL) GetByTrack(ctx context.Context, trackID uint32) (*models.Album, error) {
+func (p *PostgreSQL) GetByTrack(trackID uint32) (*models.Album, error) {
 	query := fmt.Sprintf(
 		`SELECT a.id, a.name, a.description, a.cover_src 
 		FROM %s a
@@ -154,7 +175,7 @@ func (p *PostgreSQL) GetByTrack(ctx context.Context, trackID uint32) (*models.Al
 		p.tables.Albums(), p.tables.Tracks())
 
 	var album models.Album
-	if err := p.db.GetContext(ctx, &album, query, trackID); err != nil {
+	if err := p.db.Get(&album, query, trackID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchTrackError{TrackID: trackID}, err)
 		}
@@ -165,7 +186,7 @@ func (p *PostgreSQL) GetByTrack(ctx context.Context, trackID uint32) (*models.Al
 	return &album, nil
 }
 
-func (p *PostgreSQL) GetLikedByUser(ctx context.Context, userID uint32) ([]models.Album, error) {
+func (p *PostgreSQL) GetLikedByUser(userID uint32) ([]models.Album, error) {
 	query := fmt.Sprintf(
 		`SELECT a.id, a.name, a.description, a.cover_src
 		FROM %s a 
@@ -174,7 +195,7 @@ func (p *PostgreSQL) GetLikedByUser(ctx context.Context, userID uint32) ([]model
 		p.tables.Albums(), p.tables.LikedAlbums())
 
 	var albums []models.Album
-	if err := p.db.SelectContext(ctx, &albums, query, userID); err != nil {
+	if err := p.db.Select(&albums, query, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchUserError{UserID: userID}, err)
 		}
@@ -187,13 +208,13 @@ func (p *PostgreSQL) GetLikedByUser(ctx context.Context, userID uint32) ([]model
 
 const errorLikeExists = "unique_violation"
 
-func (p *PostgreSQL) InsertLike(ctx context.Context, albumID, userID uint32) (bool, error) {
+func (p *PostgreSQL) InsertLike(albumID, userID uint32) (bool, error) {
 	insertLikeQuery := fmt.Sprintf(
 		`INSERT INTO %s (album_id, user_id) 
 		VALUES ($1, $2)`,
 		p.tables.LikedAlbums())
 
-	if _, err := p.db.ExecContext(ctx, insertLikeQuery, albumID, userID); err != nil {
+	if _, err := p.db.Exec(insertLikeQuery, albumID, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, fmt.Errorf("(repo) %w: %w", &models.NoSuchAlbumError{AlbumID: albumID}, err)
 		}
@@ -210,14 +231,14 @@ func (p *PostgreSQL) InsertLike(ctx context.Context, albumID, userID uint32) (bo
 	return true, nil
 }
 
-func (p *PostgreSQL) DeleteLike(ctx context.Context, albumID, userID uint32) (bool, error) {
+func (p *PostgreSQL) DeleteLike(albumID, userID uint32) (bool, error) {
 	query := fmt.Sprintf(
 		`DELETE
 		FROM %s
 		WHERE album_id = $1 AND user_id = $2;`,
 		p.tables.LikedAlbums())
 
-	resExec, err := p.db.ExecContext(ctx, query, albumID, userID)
+	resExec, err := p.db.Exec(query, albumID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -232,7 +253,7 @@ func (p *PostgreSQL) DeleteLike(ctx context.Context, albumID, userID uint32) (bo
 	return true, nil
 }
 
-func (p *PostgreSQL) IsLiked(ctx context.Context, albumID, userID uint32) (bool, error) {
+func (p *PostgreSQL) IsLiked(albumID, userID uint32) (bool, error) {
 	query := fmt.Sprintf(
 		`SELECT CASE WHEN 
 			EXISTS(SELECT *
@@ -242,7 +263,7 @@ func (p *PostgreSQL) IsLiked(ctx context.Context, albumID, userID uint32) (bool,
 		p.tables.LikedAlbums())
 
 	var isLiked bool
-	err := p.db.GetContext(ctx, &isLiked, query, albumID, userID)
+	err := p.db.Get(&isLiked, query, albumID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(repo) failed to check if album is liked by user: %w", err)
 	}
