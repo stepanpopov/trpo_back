@@ -1,7 +1,6 @@
 package postgresql
 
 import (
-	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -17,8 +16,6 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	artistMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/mocks"
 )
-
-var ctx = context.Background()
 
 const artistTable = "Artists"
 const likedArtistsTable = "Liked_artists"
@@ -96,7 +93,7 @@ func TestArtistRepositoryInsert(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.artist, tc.expectedID)
 
-			id, err := repo.Insert(ctx, tc.artist)
+			id, err := repo.Insert(tc.artist)
 
 			// Test
 			if tc.expectError {
@@ -191,7 +188,7 @@ func TestArtistRepositoryGetByID(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.artistToGetID, tc.expectedArtist)
 
-			a, err := repo.GetByID(ctx, tc.artistToGetID)
+			a, err := repo.GetByID(tc.artistToGetID)
 
 			// Test
 			if tc.expectError {
@@ -276,7 +273,7 @@ func TestArtistRepositoryDeleteByID(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.artistToDeleteID)
 
-			err := repo.DeleteByID(ctx, tc.artistToDeleteID)
+			err := repo.DeleteByID(tc.artistToDeleteID)
 
 			// Test
 			if tc.expectError {
@@ -359,7 +356,7 @@ func TestArtistRepositoryGetFeed(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.expectedArtists)
 
-			a, err := repo.GetFeed(ctx, feedAmountLimit)
+			a, err := repo.GetFeed(feedAmountLimit)
 
 			// Test
 			if tc.expectError {
@@ -468,7 +465,7 @@ func TestArtistRepositoryGetByAlbum(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.albumID, tc.expectedArtists)
 
-			a, err := repo.GetByAlbum(ctx, tc.albumID)
+			a, err := repo.GetByAlbum(tc.albumID)
 
 			// Test
 			if tc.expectError {
@@ -577,7 +574,7 @@ func TestArtistRepositoryGetByTrack(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.trackID, tc.expectedArtists)
 
-			a, err := repo.GetByTrack(ctx, tc.trackID)
+			a, err := repo.GetByTrack(tc.trackID)
 
 			// Test
 			if tc.expectError {
@@ -686,7 +683,7 @@ func TestArtistRepositoryGetLikedByUser(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.userID, tc.expectedArtists)
 
-			a, err := repo.GetLikedByUser(ctx, tc.userID)
+			a, err := repo.GetLikedByUser(tc.userID)
 
 			// Test
 			if tc.expectError {
@@ -784,7 +781,7 @@ func TestArtistRepositoryLike(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.likeInfo.artistID, tc.likeInfo.userID)
 
-			inserted, err := repo.InsertLike(ctx, tc.likeInfo.artistID, tc.likeInfo.userID)
+			inserted, err := repo.InsertLike(tc.likeInfo.artistID, tc.likeInfo.userID)
 
 			// Test
 			if tc.expectError {
@@ -878,7 +875,7 @@ func TestAlbumRepositoryDeleteLike(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(tc.likeInfo.artistID, tc.likeInfo.userID)
 
-			inserted, err := repo.DeleteLike(ctx, tc.likeInfo.artistID, tc.likeInfo.userID)
+			inserted, err := repo.DeleteLike(tc.likeInfo.artistID, tc.likeInfo.userID)
 
 			// Test
 			if tc.expectError {

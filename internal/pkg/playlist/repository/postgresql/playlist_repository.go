@@ -1,7 +1,6 @@
 package postgresql
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -31,7 +30,7 @@ func NewPostgreSQL(db *sqlx.DB, t playlist.Tables, l logger.Logger) *PostgreSQL 
 	}
 }
 
-func (p *PostgreSQL) Check(ctx context.Context, playlistID uint32) error {
+func (p *PostgreSQL) Check(playlistID uint32) error {
 	query := fmt.Sprintf(
 		`SELECT EXISTS(
 			SELECT id
@@ -41,7 +40,7 @@ func (p *PostgreSQL) Check(ctx context.Context, playlistID uint32) error {
 		p.tables.Playlists())
 
 	var exists bool
-	err := p.db.GetContext(ctx, &exists, query, playlistID)
+	err := p.db.Get(&exists, query, playlistID)
 	if err != nil {
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -55,7 +54,7 @@ func (p *PostgreSQL) Check(ctx context.Context, playlistID uint32) error {
 
 const errorAlreadyExists = "unique_violation"
 
-func (p *PostgreSQL) Insert(ctx context.Context, playlist models.Playlist, usersID []uint32) (_ uint32, repoErr error) {
+func (p *PostgreSQL) Insert(playlist models.Playlist, usersID []uint32) (_ uint32, repoErr error) {
 	tx, err := p.db.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("(repo) failed to begin transaction: %w", err)
@@ -68,7 +67,7 @@ func (p *PostgreSQL) Insert(ctx context.Context, playlist models.Playlist, users
 		p.tables.Playlists())
 
 	var playlistID uint32
-	row := tx.QueryRowContext(ctx, insertAlbumQuery, playlist.Name, playlist.Description, playlist.CoverSrc)
+	row := tx.QueryRow(insertAlbumQuery, playlist.Name, playlist.Description, playlist.CoverSrc)
 	if err := row.Scan(&playlistID); err != nil {
 		return 0, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -79,7 +78,7 @@ func (p *PostgreSQL) Insert(ctx context.Context, playlist models.Playlist, users
 		p.tables.UsersPlaylists())
 
 	for _, userID := range usersID {
-		if _, err := tx.ExecContext(ctx, insertPlaylistUsersQuery, userID, playlistID); err != nil {
+		if _, err := tx.Exec(insertPlaylistUsersQuery, userID, playlistID); err != nil {
 			return 0, fmt.Errorf("(repo) failed to exec query: %w", err)
 		}
 	}
@@ -87,7 +86,7 @@ func (p *PostgreSQL) Insert(ctx context.Context, playlist models.Playlist, users
 	return playlistID, nil
 }
 
-func (p *PostgreSQL) GetByID(ctx context.Context, playlistID uint32) (*models.Playlist, error) {
+func (p *PostgreSQL) GetByID(playlistID uint32) (*models.Playlist, error) {
 	query := fmt.Sprintf(
 		`SELECT id, name, description, cover_src 
 		FROM %s 
@@ -95,7 +94,7 @@ func (p *PostgreSQL) GetByID(ctx context.Context, playlistID uint32) (*models.Pl
 		p.tables.Playlists())
 
 	var playlist models.Playlist
-	if err := p.db.GetContext(ctx, &playlist, query, playlistID); err != nil {
+	if err := p.db.Get(&playlist, query, playlistID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchPlaylistError{PlaylistID: playlistID}, err)
 		}
@@ -106,7 +105,7 @@ func (p *PostgreSQL) GetByID(ctx context.Context, playlistID uint32) (*models.Pl
 	return &playlist, nil
 }
 
-func (p *PostgreSQL) UpdateWithMembers(ctx context.Context, pl models.Playlist, usersID []uint32) (repoErr error) {
+func (p *PostgreSQL) UpdateWithMembers(pl models.Playlist, usersID []uint32) (repoErr error) {
 	tx, err := p.db.Begin()
 	if err != nil {
 		return fmt.Errorf("(repo) failed to begin transaction: %w", err)
@@ -121,7 +120,7 @@ func (p *PostgreSQL) UpdateWithMembers(ctx context.Context, pl models.Playlist, 
 		WHERE id = $1;`,
 		p.tables.Playlists())
 
-	if _, err := p.db.ExecContext(ctx, updatePlaylistQuery, pl.ID, pl.Name, pl.Description, pl.CoverSrc); err != nil {
+	if _, err := p.db.Exec(updatePlaylistQuery, pl.ID, pl.Name, pl.Description, pl.CoverSrc); err != nil {
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
@@ -131,7 +130,7 @@ func (p *PostgreSQL) UpdateWithMembers(ctx context.Context, pl models.Playlist, 
 		p.tables.UsersPlaylists())
 
 	for _, userID := range usersID {
-		if _, err := tx.ExecContext(ctx, insertPlaylistUsersQuery, userID, pl.ID); err != nil {
+		if _, err := tx.Exec(insertPlaylistUsersQuery, userID, pl.ID); err != nil {
 			return fmt.Errorf("(repo) failed to exec query: %w", err)
 		}
 	}
@@ -139,7 +138,7 @@ func (p *PostgreSQL) UpdateWithMembers(ctx context.Context, pl models.Playlist, 
 	return nil
 }
 
-func (p *PostgreSQL) Update(ctx context.Context, pl models.Playlist) error {
+func (p *PostgreSQL) Update(pl models.Playlist) error {
 	updatePlaylistQuery := fmt.Sprintf(
 		`UPDATE %s
 		SET name = $2,
@@ -148,21 +147,21 @@ func (p *PostgreSQL) Update(ctx context.Context, pl models.Playlist) error {
 		WHERE id = $1;`,
 		p.tables.Playlists())
 
-	if _, err := p.db.ExecContext(ctx, updatePlaylistQuery, pl.ID, pl.Name, pl.Description, pl.CoverSrc); err != nil {
+	if _, err := p.db.Exec(updatePlaylistQuery, pl.ID, pl.Name, pl.Description, pl.CoverSrc); err != nil {
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
 	return nil
 }
 
-func (p *PostgreSQL) DeleteByID(ctx context.Context, playlistID uint32) error {
+func (p *PostgreSQL) DeleteByID(playlistID uint32) error {
 	query := fmt.Sprintf(
 		`DELETE
 		FROM %s
 		WHERE id = $1;`,
 		p.tables.Playlists())
 
-	resExec, err := p.db.ExecContext(ctx, query, playlistID)
+	resExec, err := p.db.Exec(query, playlistID)
 	if err != nil {
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -178,13 +177,13 @@ func (p *PostgreSQL) DeleteByID(ctx context.Context, playlistID uint32) error {
 	return nil
 }
 
-func (p *PostgreSQL) AddTrack(ctx context.Context, trackID, playlistID uint32) error {
+func (p *PostgreSQL) AddTrack(trackID, playlistID uint32) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (track_id, playlist_id)
 		VALUES ($1, $2);`,
 		p.tables.PlaylistsTracks())
 
-	if _, err := p.db.ExecContext(ctx, query, trackID, playlistID); err != nil {
+	if _, err := p.db.Exec(query, trackID, playlistID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("(repo) %w: %w", &models.NoSuchPlaylistError{PlaylistID: playlistID}, err)
 		}
@@ -201,14 +200,14 @@ func (p *PostgreSQL) AddTrack(ctx context.Context, trackID, playlistID uint32) e
 	return nil
 }
 
-func (p *PostgreSQL) DeleteTrack(ctx context.Context, trackID, playlistID uint32) error {
+func (p *PostgreSQL) DeleteTrack(trackID, playlistID uint32) error {
 	query := fmt.Sprintf(
 		`DELETE
 		FROM %s
 		WHERE track_id = $1 AND playlist_id = $2;`,
 		p.tables.PlaylistsTracks())
 
-	resExec, err := p.db.ExecContext(ctx, query, trackID, playlistID)
+	resExec, err := p.db.Exec(query, trackID, playlistID)
 	if err != nil {
 		return fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -225,7 +224,7 @@ func (p *PostgreSQL) DeleteTrack(ctx context.Context, trackID, playlistID uint32
 	return nil
 }
 
-func (p *PostgreSQL) GetFeed(ctx context.Context, amountLimit int) ([]models.Playlist, error) {
+func (p *PostgreSQL) GetFeed(amountLimit int) ([]models.Playlist, error) {
 	query := fmt.Sprintf(
 		`SELECT id, name, description, cover_src  
 		FROM %s 
@@ -233,24 +232,23 @@ func (p *PostgreSQL) GetFeed(ctx context.Context, amountLimit int) ([]models.Pla
 		p.tables.Playlists())
 
 	var playlists []models.Playlist
-	if err := p.db.SelectContext(ctx, &playlists, query, amountLimit); err != nil {
+	if err := p.db.Select(&playlists, query, amountLimit); err != nil {
 		return nil, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
 	return playlists, nil
 }
 
-func (p *PostgreSQL) GetByUser(ctx context.Context, userID uint32) ([]models.Playlist, error) {
+func (p *PostgreSQL) GetByUser(userID uint32) ([]models.Playlist, error) {
 	query := fmt.Sprintf(
 		`SELECT p.id, p.name, p.description, p.cover_src 
 		FROM %s p
 			INNER JOIN %s up ON p.id = up.playlist_id
-		WHERE up.user_id = $1
-		ORDER BY created_at DESC;`,
+		WHERE up.user_id = $1;`,
 		p.tables.Playlists(), p.tables.UsersPlaylists())
 
 	var playlists []models.Playlist
-	if err := p.db.SelectContext(ctx, &playlists, query, userID); err != nil {
+	if err := p.db.Select(&playlists, query, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchUserError{UserID: userID}, err)
 		}
@@ -261,17 +259,16 @@ func (p *PostgreSQL) GetByUser(ctx context.Context, userID uint32) ([]models.Pla
 	return playlists, nil
 }
 
-func (p *PostgreSQL) GetLikedByUser(ctx context.Context, userID uint32) ([]models.Playlist, error) {
+func (p *PostgreSQL) GetLikedByUser(userID uint32) ([]models.Playlist, error) {
 	query := fmt.Sprintf(
 		`SELECT p.id, p.name, p.description, p.cover_src
 		FROM %s p 
 			INNER JOIN %s ua ON p.id = up.playlist_id 
-		WHERE up.user_id = $1
-		ORDER BY liked_at DESC;`,
+		WHERE up.user_id = $1;`,
 		p.tables.Playlists(), p.tables.LikedPlaylists())
 
 	var playlists []models.Playlist
-	if err := p.db.SelectContext(ctx, &playlists, query, userID); err != nil {
+	if err := p.db.Select(&playlists, query, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("(repo) %w: %w", &models.NoSuchUserError{UserID: userID}, err)
 		}
@@ -282,13 +279,13 @@ func (p *PostgreSQL) GetLikedByUser(ctx context.Context, userID uint32) ([]model
 	return playlists, nil
 }
 
-func (p *PostgreSQL) InsertLike(ctx context.Context, playlistID, userID uint32) (bool, error) {
+func (p *PostgreSQL) InsertLike(playlistID, userID uint32) (bool, error) {
 	insertLikeQuery := fmt.Sprintf(
 		`INSERT INTO %s (playlist_id, user_id) 
 		VALUES ($1, $2);`,
 		p.tables.LikedPlaylists())
 
-	if _, err := p.db.ExecContext(ctx, insertLikeQuery, playlistID, userID); err != nil {
+	if _, err := p.db.Exec(insertLikeQuery, playlistID, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, fmt.Errorf("(repo) %w: %w", &models.NoSuchPlaylistError{PlaylistID: playlistID}, err)
 		}
@@ -305,14 +302,14 @@ func (p *PostgreSQL) InsertLike(ctx context.Context, playlistID, userID uint32) 
 	return true, nil
 }
 
-func (p *PostgreSQL) DeleteLike(ctx context.Context, playlistID, userID uint32) (bool, error) {
+func (p *PostgreSQL) DeleteLike(playlistID, userID uint32) (bool, error) {
 	query := fmt.Sprintf(
 		`DELETE
 		FROM %s
 		WHERE playlist_id = $1 AND user_id = $2;`,
 		p.tables.LikedPlaylists())
 
-	resExec, err := p.db.ExecContext(ctx, query, playlistID, userID)
+	resExec, err := p.db.Exec(query, playlistID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
@@ -327,17 +324,17 @@ func (p *PostgreSQL) DeleteLike(ctx context.Context, playlistID, userID uint32) 
 	return true, nil
 }
 
-func (p *PostgreSQL) IsLiked(ctx context.Context, playlistID, userID uint32) (bool, error) {
+func (p *PostgreSQL) IsLiked(playlistID, userID uint32) (bool, error) {
 	query := fmt.Sprintf(
-		`SELECT EXISTS(
-			SELECT playlist_id
-			FROM %s
-			WHERE playlist_id = $1 AND user_id = $2
-		);`,
+		`SELECT CASE WHEN 
+			EXISTS(SELECT *
+				FROM %s
+				WHERE playlist_id = $1 AND user_id = $2
+			) THEN TRUE ELSE FALSE END;`,
 		p.tables.LikedPlaylists())
 
 	var isLiked bool
-	err := p.db.GetContext(ctx, &isLiked, query, playlistID, userID)
+	err := p.db.Get(&isLiked, query, playlistID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(repo) failed to check if playlist is liked by user: %w", err)
 	}

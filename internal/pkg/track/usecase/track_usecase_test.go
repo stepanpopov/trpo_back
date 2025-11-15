@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -14,8 +13,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
-
-var ctx = context.Background()
 
 func TestTrackUsecaseCreate(t *testing.T) {
 	type mockBehavior func(tr *trackMocks.MockRepository, ar *artistMocks.MockRepository,
@@ -67,9 +64,9 @@ func TestTrackUsecaseCreate(t *testing.T) {
 				track models.Track, artistsID []uint32, userID uint32) {
 
 				for ind, id := range artistsID {
-					arr.EXPECT().GetByID(ctx, id).Return(&correctArtists[ind], nil)
+					arr.EXPECT().GetByID(id).Return(&correctArtists[ind], nil)
 				}
-				tr.EXPECT().Insert(ctx, track, artistsID).Return(correctTrack.ID, nil)
+				tr.EXPECT().Insert(track, artistsID).Return(correctTrack.ID, nil)
 			},
 		},
 		{
@@ -81,7 +78,7 @@ func TestTrackUsecaseCreate(t *testing.T) {
 				track models.Track, artistsID []uint32, userID uint32) {
 
 				for ind, id := range artistsID {
-					arr.EXPECT().GetByID(ctx, id).Return(&correctArtists[ind], nil)
+					arr.EXPECT().GetByID(id).Return(&correctArtists[ind], nil)
 				}
 			},
 			expectError:      true,
@@ -96,7 +93,7 @@ func TestTrackUsecaseCreate(t *testing.T) {
 				track models.Track, artistsID []uint32, userID uint32) {
 
 				for _, id := range artistsID {
-					arr.EXPECT().GetByID(ctx, id).Return(nil, errors.New(""))
+					arr.EXPECT().GetByID(id).Return(nil, errors.New(""))
 				}
 			},
 			expectError:      true,
@@ -111,9 +108,9 @@ func TestTrackUsecaseCreate(t *testing.T) {
 				track models.Track, artistsID []uint32, userID uint32) {
 
 				for ind, id := range artistsID {
-					arr.EXPECT().GetByID(ctx, id).Return(&correctArtists[ind], nil)
+					arr.EXPECT().GetByID(id).Return(&correctArtists[ind], nil)
 				}
-				tr.EXPECT().Insert(ctx, track, artistsID).Return(uint32(0), errors.New(""))
+				tr.EXPECT().Insert(track, artistsID).Return(uint32(0), errors.New(""))
 			},
 			expectError:      true,
 			expectedErrorMsg: "can't insert track",
@@ -124,7 +121,7 @@ func TestTrackUsecaseCreate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.mockBehavior(tr, arr, tc.album, tc.artistsID, tc.userID)
 
-			albumID, err := u.Create(ctx, tc.album, tc.artistsID, tc.userID)
+			albumID, err := u.Create(tc.album, tc.artistsID, tc.userID)
 
 			if tc.expectError {
 				assert.ErrorContains(t, err, tc.expectedErrorMsg)

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,8 +18,6 @@ import (
 	trackMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track/mocks"
 	userMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/mocks"
 )
-
-var ctx = context.Background()
 
 var correctUser = models.User{
 	ID: 1,
@@ -91,7 +88,7 @@ func TestPlaylistDeliveryCreate(t *testing.T) {
 			requestBody: correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Create(
-					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
+					expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(uint32(1), nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -132,8 +129,9 @@ func TestPlaylistDeliveryCreate(t *testing.T) {
 			user:        &correctUser,
 			requestBody: correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().Create(ctx, expectedCallPlaylist, correctUsersID, correctUser.ID).
-					Return(uint32(0), &models.ForbiddenUserError{})
+				pu.EXPECT().Create(
+					expectedCallPlaylist, correctUsersID, correctUser.ID,
+				).Return(uint32(0), &models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
 			expectedResponse: commonTests.ErrorResponse(playlistCreateNorights),
@@ -144,7 +142,7 @@ func TestPlaylistDeliveryCreate(t *testing.T) {
 			requestBody: correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Create(
-					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
+					expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(uint32(0), errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -229,9 +227,9 @@ func TestPlaylistDeliveryGet(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetByID(ctx, correctPlaylistID).Return(&expectedReturnPlaylist, nil)
-				pu.EXPECT().IsLiked(ctx, correctPlaylistID, correctUser.ID).Return(true, nil)
-				uu.EXPECT().GetByPlaylist(ctx, correctPlaylistID).Return(expectedReturnUsers, nil)
+				pu.EXPECT().GetByID(correctPlaylistID).Return(&expectedReturnPlaylist, nil)
+				pu.EXPECT().IsLiked(correctPlaylistID, correctUser.ID).Return(true, nil)
+				uu.EXPECT().GetByPlaylist(correctPlaylistID).Return(expectedReturnUsers, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
@@ -248,7 +246,7 @@ func TestPlaylistDeliveryGet(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetByID(ctx, correctPlaylistID).Return(nil, &models.NoSuchPlaylistError{})
+				pu.EXPECT().GetByID(correctPlaylistID).Return(nil, &models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(playlistNotFound),
@@ -258,7 +256,7 @@ func TestPlaylistDeliveryGet(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetByID(ctx, correctPlaylistID).Return(nil, errors.New(""))
+				pu.EXPECT().GetByID(correctPlaylistID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistGetServerError),
@@ -268,8 +266,8 @@ func TestPlaylistDeliveryGet(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetByID(ctx, correctPlaylistID).Return(&expectedReturnPlaylist, nil)
-				uu.EXPECT().GetByPlaylist(ctx, correctPlaylistID).Return(nil, errors.New(""))
+				pu.EXPECT().GetByID(correctPlaylistID).Return(&expectedReturnPlaylist, nil)
+				uu.EXPECT().GetByPlaylist(correctPlaylistID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistGetServerError),
@@ -342,7 +340,7 @@ func TestPlaylistDeliveryUpdate(t *testing.T) {
 			requestBody:    correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().UpdateInfoAndMembers(
-					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
+					expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -395,7 +393,7 @@ func TestPlaylistDeliveryUpdate(t *testing.T) {
 			requestBody:    correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().UpdateInfoAndMembers(
-					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
+					expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -408,7 +406,7 @@ func TestPlaylistDeliveryUpdate(t *testing.T) {
 			requestBody:    correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().UpdateInfoAndMembers(
-					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
+					expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -463,7 +461,7 @@ func TestPlaylistDeliveryDelete(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Delete(
-					ctx, correctPlaylistID, correctUser.ID,
+					correctPlaylistID, correctUser.ID,
 				).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -490,7 +488,7 @@ func TestPlaylistDeliveryDelete(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Delete(
-					ctx, correctPlaylistID, correctUser.ID,
+					correctPlaylistID, correctUser.ID,
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -502,7 +500,7 @@ func TestPlaylistDeliveryDelete(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Delete(
-					ctx, correctPlaylistID, correctUser.ID,
+					correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -514,7 +512,7 @@ func TestPlaylistDeliveryDelete(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Delete(
-					ctx, correctPlaylistID, correctUser.ID,
+					correctPlaylistID, correctUser.ID,
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -573,7 +571,7 @@ func TestPlaylistDeliveryAddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					ctx, correctPlaylistID, correctTrackID, correctUser.ID,
+					correctPlaylistID, correctTrackID, correctUser.ID,
 				).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -611,7 +609,7 @@ func TestPlaylistDeliveryAddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -624,7 +622,7 @@ func TestPlaylistDeliveryAddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -637,7 +635,7 @@ func TestPlaylistDeliveryAddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchTrackError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -650,7 +648,7 @@ func TestPlaylistDeliveryAddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -663,8 +661,7 @@ func TestPlaylistDeliveryAddTrack(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(pu)
 
-			commonTests.DeliveryTestPost(t, r,
-				"/api/playlists/"+tc.playlistIDPath+"/tracks/"+tc.trackIDPath,
+			commonTests.DeliveryTestPost(t, r, "/api/playlists/"+tc.playlistIDPath+"/tracks/"+tc.trackIDPath,
 				"", tc.expectedStatus, tc.expectedResponse,
 				commonTests.WrapRequestWithUserNotNilFunc(tc.user))
 		})
@@ -710,7 +707,7 @@ func TestPlaylistDeliveryDeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -748,7 +745,7 @@ func TestPlaylistDeliveryDeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -761,7 +758,7 @@ func TestPlaylistDeliveryDeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -774,7 +771,7 @@ func TestPlaylistDeliveryDeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchTrackError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -787,7 +784,7 @@ func TestPlaylistDeliveryDeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
+					correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -800,8 +797,7 @@ func TestPlaylistDeliveryDeleteTrack(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(pu)
 
-			commonTests.DeliveryTestDelete(t, r,
-				"/api/playlists/"+tc.playlistIDPath+"/tracks/"+tc.trackIDPath,
+			commonTests.DeliveryTestDelete(t, r, "/api/playlists/"+tc.playlistIDPath+"/tracks/"+tc.trackIDPath,
 				tc.expectedStatus, tc.expectedResponse,
 				commonTests.WrapRequestWithUserNotNilFunc(tc.user))
 		})
@@ -895,10 +891,10 @@ func TestPlaylistDeliveryFeed(t *testing.T) {
 		{
 			name: "Common",
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetFeed(ctx).Return(expectedReturnPlaylists, nil)
+				pu.EXPECT().GetFeed().Return(expectedReturnPlaylists, nil)
 				for _, p := range expectedReturnPlaylists {
 					// Makes up only for 1:1 users:playlists
-					uu.EXPECT().GetByPlaylist(ctx, p.ID).Return(expectedReturnUsers[0:], nil)
+					uu.EXPECT().GetByPlaylist(p.ID).Return(expectedReturnUsers[0:], nil)
 				}
 			},
 			expectedStatus:   http.StatusOK,
@@ -907,7 +903,7 @@ func TestPlaylistDeliveryFeed(t *testing.T) {
 		{
 			name: "No Playlists",
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetFeed(ctx).Return([]models.Playlist{}, nil)
+				pu.EXPECT().GetFeed().Return([]models.Playlist{}, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: `[]`,
@@ -915,7 +911,7 @@ func TestPlaylistDeliveryFeed(t *testing.T) {
 		{
 			name: "Playlists Issues",
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetFeed(ctx).Return(nil, errors.New(""))
+				pu.EXPECT().GetFeed().Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistsGetServerError),
@@ -923,8 +919,8 @@ func TestPlaylistDeliveryFeed(t *testing.T) {
 		{
 			name: "Users Issues",
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetFeed(ctx).Return(expectedReturnPlaylists, nil)
-				uu.EXPECT().GetByPlaylist(ctx, expectedReturnPlaylists[0].ID).Return(nil, errors.New(""))
+				pu.EXPECT().GetFeed().Return(expectedReturnPlaylists, nil)
+				uu.EXPECT().GetByPlaylist(expectedReturnPlaylists[0].ID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistsGetServerError),
@@ -936,8 +932,7 @@ func TestPlaylistDeliveryFeed(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(pu, uu)
 
-			commonTests.DeliveryTestGet(t, r, "/api/playlists/feed",
-				tc.expectedStatus, tc.expectedResponse,
+			commonTests.DeliveryTestGet(t, r, "/api/playlists/feed", tc.expectedStatus, tc.expectedResponse,
 				func(req *http.Request) *http.Request { return req })
 		})
 	}
@@ -1035,10 +1030,10 @@ func TestPlaylistDeliveryGetFavorite(t *testing.T) {
 			name: "Common",
 			user: &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase, userID uint32) {
-				pu.EXPECT().GetLikedByUser(ctx, userID).Return(expectedReturnPlaylists, nil)
+				pu.EXPECT().GetLikedByUser(userID).Return(expectedReturnPlaylists, nil)
 				for _, playlist := range expectedReturnPlaylists {
-					pu.EXPECT().IsLiked(ctx, playlist.ID, correctUserID).Return(true, nil)
-					uu.EXPECT().GetByPlaylist(ctx, playlist.ID).Return(expectedReturnUsers, nil)
+					pu.EXPECT().IsLiked(playlist.ID, correctUserID).Return(true, nil)
+					uu.EXPECT().GetByPlaylist(playlist.ID).Return(expectedReturnUsers, nil)
 				}
 			},
 			expectedStatus:   http.StatusOK,
@@ -1048,7 +1043,7 @@ func TestPlaylistDeliveryGetFavorite(t *testing.T) {
 			name: "Playlists Issue",
 			user: &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase, userID uint32) {
-				pu.EXPECT().GetLikedByUser(ctx, userID).Return(nil, errors.New(""))
+				pu.EXPECT().GetLikedByUser(userID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistsGetServerError),
@@ -1057,8 +1052,8 @@ func TestPlaylistDeliveryGetFavorite(t *testing.T) {
 			name: "Users Issue",
 			user: &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase, userID uint32) {
-				pu.EXPECT().GetLikedByUser(ctx, userID).Return(expectedReturnPlaylists, nil)
-				uu.EXPECT().GetByPlaylist(ctx, expectedReturnPlaylists[0].ID).Return(nil, errors.New(""))
+				pu.EXPECT().GetLikedByUser(userID).Return(expectedReturnPlaylists, nil)
+				uu.EXPECT().GetByPlaylist(expectedReturnPlaylists[0].ID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistsGetServerError),
@@ -1070,8 +1065,7 @@ func TestPlaylistDeliveryGetFavorite(t *testing.T) {
 			// Call mock
 			tc.mockBehavior(pu, uu, tc.user.ID)
 
-			commonTests.DeliveryTestGet(t, r,
-				"/api/users/"+correctUserIDPath+"/favorite/playlists",
+			commonTests.DeliveryTestGet(t, r, "/api/users/"+correctUserIDPath+"/favorite/playlists",
 				tc.expectedStatus, tc.expectedResponse,
 				commonTests.WrapRequestWithUserNotNilFunc(tc.user))
 		})
@@ -1112,7 +1106,7 @@ func TestPlaylistDeliveryLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().SetLike(ctx, correctPlaylistID, correctUser.ID).Return(true, nil)
+				pu.EXPECT().SetLike(correctPlaylistID, correctUser.ID).Return(true, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(commonHttp.LikeSuccess),
@@ -1122,7 +1116,7 @@ func TestPlaylistDeliveryLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().SetLike(ctx, correctPlaylistID, correctUser.ID).Return(false, nil)
+				pu.EXPECT().SetLike(correctPlaylistID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(commonHttp.LikeAlreadyExists),
@@ -1148,7 +1142,7 @@ func TestPlaylistDeliveryLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().SetLike(ctx, correctPlaylistID, correctUser.ID).Return(false, &models.NoSuchPlaylistError{})
+				pu.EXPECT().SetLike(correctPlaylistID, correctUser.ID).Return(false, &models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(playlistNotFound),
@@ -1158,7 +1152,7 @@ func TestPlaylistDeliveryLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().SetLike(ctx, correctPlaylistID, correctUser.ID).Return(false, errors.New(""))
+				pu.EXPECT().SetLike(correctPlaylistID, correctUser.ID).Return(false, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(commonHttp.SetLikeServerError),
@@ -1211,7 +1205,7 @@ func TestPlaylistDeliveryUnLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().UnLike(ctx, correctPlaylistID, correctUser.ID).Return(true, nil)
+				pu.EXPECT().UnLike(correctPlaylistID, correctUser.ID).Return(true, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(commonHttp.UnLikeSuccess),
@@ -1221,7 +1215,7 @@ func TestPlaylistDeliveryUnLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().UnLike(ctx, correctPlaylistID, correctUser.ID).Return(false, nil)
+				pu.EXPECT().UnLike(correctPlaylistID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(commonHttp.LikeDoesntExist),
@@ -1247,7 +1241,7 @@ func TestPlaylistDeliveryUnLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().UnLike(ctx, correctPlaylistID, correctUser.ID).Return(false, &models.NoSuchPlaylistError{})
+				pu.EXPECT().UnLike(correctPlaylistID, correctUser.ID).Return(false, &models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(playlistNotFound),
@@ -1257,7 +1251,7 @@ func TestPlaylistDeliveryUnLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().UnLike(ctx, correctPlaylistID, correctUser.ID).Return(false, errors.New(""))
+				pu.EXPECT().UnLike(correctPlaylistID, correctUser.ID).Return(false, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(commonHttp.DeleteLikeServerError),

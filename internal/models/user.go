@@ -43,6 +43,8 @@ type UserTransfer struct {
 	AvatarSrc string `json:"avatarSrc,omitempty"`
 }
 
+type ContextKeyUserType struct{}
+
 func (d *Date) UnmarshalJSON(b []byte) error {
 	s := strings.Trim(string(b), "\"")
 

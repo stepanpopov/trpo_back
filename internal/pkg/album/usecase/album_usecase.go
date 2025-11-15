@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
@@ -23,10 +22,10 @@ func NewUsecase(alr album.Repository, arr artist.Repository, l logger.Logger) *U
 	return &Usecase{albumRepo: alr, artistRepo: arr, logger: l}
 }
 
-func (u *Usecase) Create(ctx context.Context, album models.Album, artistsID []uint32, userID uint32) (uint32, error) {
+func (u *Usecase) Create(album models.Album, artistsID []uint32, userID uint32) (uint32, error) {
 	userInArtists := false
 	for _, artistID := range artistsID {
-		a, err := u.artistRepo.GetByID(ctx, artistID)
+		a, err := u.artistRepo.GetByID(artistID)
 		if err != nil {
 			return 0, fmt.Errorf("(usecase) can't get artist with id #%d: %w", artistID, err)
 		}
@@ -39,7 +38,7 @@ func (u *Usecase) Create(ctx context.Context, album models.Album, artistsID []ui
 		return 0, fmt.Errorf("(usecase) album can't be created by user: %w", &models.ForbiddenUserError{})
 	}
 
-	albumID, err := u.albumRepo.Insert(ctx, album, artistsID)
+	albumID, err := u.albumRepo.Insert(album, artistsID)
 	if err != nil {
 		return 0, fmt.Errorf("(usecase) can't insert album into repository: %w", err)
 	}
@@ -47,8 +46,8 @@ func (u *Usecase) Create(ctx context.Context, album models.Album, artistsID []ui
 	return albumID, nil
 }
 
-func (u *Usecase) GetByID(ctx context.Context, albumID uint32) (*models.Album, error) {
-	album, err := u.albumRepo.GetByID(ctx, albumID)
+func (u *Usecase) GetByID(albumID uint32) (*models.Album, error) {
+	album, err := u.albumRepo.GetByID(albumID)
 	if err != nil {
 		return nil, fmt.Errorf("(usecase) can't get album from repository: %w", err)
 	}
@@ -56,13 +55,13 @@ func (u *Usecase) GetByID(ctx context.Context, albumID uint32) (*models.Album, e
 	return album, nil
 }
 
-func (u *Usecase) Delete(ctx context.Context, albumID uint32, userID uint32) error {
-	if err := u.albumRepo.Check(ctx, albumID); err != nil {
+func (u *Usecase) Delete(albumID uint32, userID uint32) error {
+	if err := u.albumRepo.Check(albumID); err != nil {
 		return fmt.Errorf("(usecase) can't find album with id #%d: %w", albumID, err)
 	}
 
 	userInArtists := false
-	artists, err := u.artistRepo.GetByAlbum(ctx, albumID)
+	artists, err := u.artistRepo.GetByAlbum(albumID)
 	if err != nil {
 		return fmt.Errorf("(usecase) can't get artists of album: %w", err)
 	}
@@ -76,15 +75,15 @@ func (u *Usecase) Delete(ctx context.Context, albumID uint32, userID uint32) err
 		return fmt.Errorf("(usecase) album can't be deleted by user: %w", &models.ForbiddenUserError{})
 	}
 
-	if err := u.albumRepo.DeleteByID(ctx, albumID); err != nil {
+	if err := u.albumRepo.DeleteByID(albumID); err != nil {
 		return fmt.Errorf("(usecase) can't delete album from repository: %w", err)
 	}
 
 	return nil
 }
 
-func (u *Usecase) GetFeed(ctx context.Context) ([]models.Album, error) {
-	albums, err := u.albumRepo.GetFeed(ctx, feedAlbumsAmountLimit)
+func (u *Usecase) GetFeed() ([]models.Album, error) {
+	albums, err := u.albumRepo.GetFeed(feedAlbumsAmountLimit)
 	if err != nil {
 		return nil, fmt.Errorf("(usecase) can't get feed albums from repository: %w", err)
 	}
@@ -92,12 +91,12 @@ func (u *Usecase) GetFeed(ctx context.Context) ([]models.Album, error) {
 	return albums, nil
 }
 
-func (u *Usecase) GetByArtist(ctx context.Context, artistID uint32) ([]models.Album, error) {
-	if err := u.artistRepo.Check(ctx, artistID); err != nil {
+func (u *Usecase) GetByArtist(artistID uint32) ([]models.Album, error) {
+	if err := u.artistRepo.Check(artistID); err != nil {
 		return nil, fmt.Errorf("(usecase) can't find artist with id #%d: %w", artistID, err)
 	}
 
-	albums, err := u.albumRepo.GetByArtist(ctx, artistID)
+	albums, err := u.albumRepo.GetByArtist(artistID)
 	if err != nil {
 		return nil, fmt.Errorf("(usecase) can't get albums from repository: %w", err)
 	}
@@ -105,8 +104,8 @@ func (u *Usecase) GetByArtist(ctx context.Context, artistID uint32) ([]models.Al
 	return albums, nil
 }
 
-func (u *Usecase) GetByTrack(ctx context.Context, trackID uint32) (*models.Album, error) {
-	album, err := u.albumRepo.GetByTrack(ctx, trackID)
+func (u *Usecase) GetByTrack(trackID uint32) (*models.Album, error) {
+	album, err := u.albumRepo.GetByTrack(trackID)
 	if err != nil {
 		return nil, fmt.Errorf("(usecase) can't get albums from repository: %w", err)
 	}
@@ -114,8 +113,8 @@ func (u *Usecase) GetByTrack(ctx context.Context, trackID uint32) (*models.Album
 	return album, nil
 }
 
-func (u *Usecase) GetLikedByUser(ctx context.Context, userID uint32) ([]models.Album, error) {
-	albums, err := u.albumRepo.GetLikedByUser(ctx, userID)
+func (u *Usecase) GetLikedByUser(userID uint32) ([]models.Album, error) {
+	albums, err := u.albumRepo.GetLikedByUser(userID)
 	if err != nil {
 		return nil, fmt.Errorf("(usecase) can't get albums from repository: %w", err)
 	}
@@ -123,12 +122,12 @@ func (u *Usecase) GetLikedByUser(ctx context.Context, userID uint32) ([]models.A
 	return albums, nil
 }
 
-func (u *Usecase) SetLike(ctx context.Context, albumID, userID uint32) (bool, error) {
-	if err := u.albumRepo.Check(ctx, albumID); err != nil {
+func (u *Usecase) SetLike(albumID, userID uint32) (bool, error) {
+	if err := u.albumRepo.Check(albumID); err != nil {
 		return false, fmt.Errorf("(usecase) can't find album with id #%d: %w", albumID, err)
 	}
 
-	isInserted, err := u.albumRepo.InsertLike(ctx, albumID, userID)
+	isInserted, err := u.albumRepo.InsertLike(albumID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(usecase) failed to set like: %w", err)
 	}
@@ -136,12 +135,12 @@ func (u *Usecase) SetLike(ctx context.Context, albumID, userID uint32) (bool, er
 	return isInserted, nil
 }
 
-func (u *Usecase) UnLike(ctx context.Context, albumID, userID uint32) (bool, error) {
-	if err := u.albumRepo.Check(ctx, albumID); err != nil {
+func (u *Usecase) UnLike(albumID, userID uint32) (bool, error) {
+	if err := u.albumRepo.Check(albumID); err != nil {
 		return false, fmt.Errorf("(usecase) can't find album with id #%d: %w", albumID, err)
 	}
 
-	isDeleted, err := u.albumRepo.DeleteLike(ctx, albumID, userID)
+	isDeleted, err := u.albumRepo.DeleteLike(albumID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(usecase) failed to unset like: %w", err)
 	}
@@ -149,8 +148,8 @@ func (u *Usecase) UnLike(ctx context.Context, albumID, userID uint32) (bool, err
 	return isDeleted, nil
 }
 
-func (u *Usecase) IsLiked(ctx context.Context, albumID, userID uint32) (bool, error) {
-	isLiked, err := u.albumRepo.IsLiked(ctx, albumID, userID)
+func (u *Usecase) IsLiked(albumID, userID uint32) (bool, error) {
+	isLiked, err := u.albumRepo.IsLiked(albumID, userID)
 	if err != nil {
 		return false, fmt.Errorf("(usecase) can't check in repository if album is liked: %w", err)
 	}
