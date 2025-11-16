@@ -7,12 +7,16 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 )
 
-type Usecase struct{}
+type Usecase struct {
+	logger logger.Logger
+}
 
-func NewUsecase() *Usecase {
-	return &Usecase{}
+func NewUsecase(l logger.Logger) *Usecase {
+	return &Usecase{logger: l}
 }
 
 var tokenSecret = os.Getenv("SECRET")

@@ -13,6 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 
+	commonTests "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/tests"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	trackMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track/mocks"
 )
@@ -34,7 +35,6 @@ var defaultTracks = []models.Track{
 		AlbumID:   &defaultTrackAlbumID1,
 		CoverSrc:  "/tracks/covers/laggout.png",
 		RecordSrc: "/tracks/records/laggout.wav",
-		Duration:  180,
 		Listens:   9999999,
 	},
 	{
@@ -43,12 +43,11 @@ var defaultTracks = []models.Track{
 		AlbumID:   &defaultTrackAlbumID2,
 		CoverSrc:  "/tracks/covers/nakanune.png",
 		RecordSrc: "/tracks/records/nakanune.wav",
-		Duration:  180,
 		Listens:   10000000,
 	},
 }
 
-func TestTrackRepositoryPostgreSQL_Insert(t *testing.T) {
+func TestTrackRepositoryInsert(t *testing.T) {
 	// Init
 	type mockBehavior func(track models.Track, artistsID []uint32, id uint32)
 
@@ -60,9 +59,11 @@ func TestTrackRepositoryPostgreSQL_Insert(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	var albumID uint32 = 1
@@ -72,7 +73,6 @@ func TestTrackRepositoryPostgreSQL_Insert(t *testing.T) {
 		Name:          "LAGG OUT",
 		AlbumID:       &albumID,
 		AlbumPosition: &AlbumPosition,
-		Duration:      180,
 		CoverSrc:      "/tracks/covers/laggout.png",
 		RecordSrc:     "/tracks/records/laggout.png",
 	}
@@ -100,7 +100,7 @@ func TestTrackRepositoryPostgreSQL_Insert(t *testing.T) {
 
 				row := sqlxMock.NewRows([]string{"id"}).AddRow(id)
 				sqlxMock.ExpectQuery("INSERT INTO "+trackTable).
-					WithArgs(t.Name, t.AlbumID, t.AlbumPosition, t.CoverSrc, t.RecordSrc, t.Duration).
+					WithArgs(t.Name, t.AlbumID, t.AlbumPosition, t.CoverSrc, t.RecordSrc).
 					WillReturnRows(row)
 
 				for _, artistID := range artistsID {
@@ -125,7 +125,7 @@ func TestTrackRepositoryPostgreSQL_Insert(t *testing.T) {
 
 				row := sqlxMock.NewRows([]string{"id"}).AddRow(id)
 				sqlxMock.ExpectQuery("INSERT INTO "+trackTable).
-					WithArgs(t.Name, t.AlbumID, t.AlbumPosition, t.CoverSrc, t.RecordSrc, t.Duration).
+					WithArgs(t.Name, t.AlbumID, t.AlbumPosition, t.CoverSrc, t.RecordSrc).
 					WillReturnRows(row)
 
 				sqlxMock.ExpectExec("INSERT INTO "+artistsTracksTable).
@@ -148,7 +148,7 @@ func TestTrackRepositoryPostgreSQL_Insert(t *testing.T) {
 				sqlxMock.ExpectBegin()
 
 				sqlxMock.ExpectQuery("INSERT INTO "+trackTable).
-					WithArgs(t.Name, t.AlbumID, t.AlbumPosition, t.CoverSrc, t.RecordSrc, t.Duration).
+					WithArgs(t.Name, t.AlbumID, t.AlbumPosition, t.CoverSrc, t.RecordSrc).
 					WillReturnError(errPqInternal)
 
 				sqlxMock.ExpectRollback()
@@ -176,7 +176,7 @@ func TestTrackRepositoryPostgreSQL_Insert(t *testing.T) {
 	}
 }
 
-func TestTrackRepositoryPostgreSQL_GetByID(t *testing.T) {
+func TestTrackRepositoryGetByID(t *testing.T) {
 	// Init
 	type mockBehavior func(trackID uint32, t models.Track)
 
@@ -188,9 +188,11 @@ func TestTrackRepositoryPostgreSQL_GetByID(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	var defaultTrackToGetID uint32 = 1
@@ -202,7 +204,6 @@ func TestTrackRepositoryPostgreSQL_GetByID(t *testing.T) {
 		AlbumID:   &defaultTrackAlbumID,
 		CoverSrc:  "/tracks/covers/laggout.png",
 		RecordSrc: "/tracks/records/laggout.wav",
-		Duration:  180,
 		Listens:   9999999,
 	}
 
@@ -220,9 +221,8 @@ func TestTrackRepositoryPostgreSQL_GetByID(t *testing.T) {
 			mockBehavior: func(trackID uint32, t models.Track) {
 				tablesMock.EXPECT().Tracks().Return(trackTable)
 
-				row := sqlxMock.NewRows(
-					[]string{"id", "name", "album_id", "cover_src", "record_src", "listens", "duration"}).
-					AddRow(t.ID, t.Name, t.AlbumID, t.CoverSrc, t.RecordSrc, t.Listens, t.Duration)
+				row := sqlxMock.NewRows([]string{"id", "name", "album_id", "cover_src", "record_src", "listens"}).
+					AddRow(t.ID, t.Name, t.AlbumID, t.CoverSrc, t.RecordSrc, t.Listens)
 				sqlxMock.ExpectQuery("SELECT (.+) FROM " + trackTable).
 					WithArgs(trackID).
 					WillReturnRows(row)
@@ -275,7 +275,7 @@ func TestTrackRepositoryPostgreSQL_GetByID(t *testing.T) {
 	}
 }
 
-func TestTrackRepositoryPostgreSQL_DeleteByID(t *testing.T) {
+func TestTrackRepositoryDeleteByID(t *testing.T) {
 	// Init
 	type mockBehavior func(trackID uint32)
 
@@ -287,9 +287,11 @@ func TestTrackRepositoryPostgreSQL_DeleteByID(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	const defaultTrackToDeleteID uint32 = 1
@@ -357,7 +359,7 @@ func TestTrackRepositoryPostgreSQL_DeleteByID(t *testing.T) {
 	}
 }
 
-func TestTrackRepositoryPostgreSQL_GetFeed(t *testing.T) {
+func TestTrackRepositoryGetFeed(t *testing.T) {
 	// Init
 	type mockBehavior func(tracks []models.Track)
 
@@ -369,9 +371,11 @@ func TestTrackRepositoryPostgreSQL_GetFeed(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	testTable := []struct {
@@ -386,12 +390,9 @@ func TestTrackRepositoryPostgreSQL_GetFeed(t *testing.T) {
 			mockBehavior: func(t []models.Track) {
 				tablesMock.EXPECT().Tracks().Return(trackTable)
 
-				rows := sqlxMock.NewRows([]string{
-					"id", "name", "album_id", "cover_src", "record_src", "listens", "duration"})
-				for ind := range t {
-					rows.AddRow(t[ind].ID, t[ind].Name, t[ind].AlbumID,
-						t[ind].CoverSrc, t[ind].RecordSrc, t[ind].Listens, t[ind].Duration)
-				}
+				rows := sqlxMock.NewRows([]string{"id", "name", "album_id", "cover_src", "record_src", "listens"}).
+					AddRow(t[0].ID, t[0].Name, t[0].AlbumID, t[0].CoverSrc, t[0].RecordSrc, t[0].Listens).
+					AddRow(t[1].ID, t[1].Name, t[1].AlbumID, t[1].CoverSrc, t[1].RecordSrc, t[1].Listens)
 				sqlxMock.ExpectQuery("SELECT (.+) FROM " + trackTable).
 					WillReturnRows(rows)
 			},
@@ -410,7 +411,7 @@ func TestTrackRepositoryPostgreSQL_GetFeed(t *testing.T) {
 		},
 	}
 
-	var feedAmountLimit uint32 = 100
+	feedAmountLimit := 100
 	for _, tc := range testTable {
 		t.Run(tc.name, func(t *testing.T) {
 			// Call mock
@@ -429,7 +430,7 @@ func TestTrackRepositoryPostgreSQL_GetFeed(t *testing.T) {
 	}
 }
 
-func TestTrackRepositoryPostgreSQL_GetByArtist(t *testing.T) {
+func TestTrackRepositoryGetByArtist(t *testing.T) {
 	// Init
 	type mockBehavior func(artistID uint32, tracks []models.Track)
 
@@ -441,9 +442,11 @@ func TestTrackRepositoryPostgreSQL_GetByArtist(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	const defaultArtistID uint32 = 1
@@ -463,12 +466,9 @@ func TestTrackRepositoryPostgreSQL_GetByArtist(t *testing.T) {
 				tablesMock.EXPECT().Tracks().Return(trackTable)
 				tablesMock.EXPECT().ArtistsTracks().Return(artistsTracksTable)
 
-				rows := sqlxMock.NewRows(
-					[]string{"id", "name", "album_id", "cover_src", "record_src", "listens", "duration"})
-				for ind := range t {
-					rows.AddRow(t[ind].ID, t[ind].Name, t[ind].AlbumID,
-						t[ind].CoverSrc, t[ind].RecordSrc, t[ind].Listens, t[ind].Duration)
-				}
+				rows := sqlxMock.NewRows([]string{"id", "name", "album_id", "cover_src", "record_src", "listens"}).
+					AddRow(t[0].ID, t[0].Name, t[0].AlbumID, t[0].CoverSrc, t[0].RecordSrc, t[0].Listens).
+					AddRow(t[1].ID, t[1].Name, t[1].AlbumID, t[1].CoverSrc, t[1].RecordSrc, t[1].Listens)
 				sqlxMock.ExpectQuery(fmt.Sprintf("SELECT (.+) FROM %s t INNER JOIN %s",
 					trackTable, artistsTracksTable)).
 					WithArgs(artistID).
@@ -526,7 +526,7 @@ func TestTrackRepositoryPostgreSQL_GetByArtist(t *testing.T) {
 	}
 }
 
-func TestTrackRepositoryPostgreSQL_GetByAlbum(t *testing.T) {
+func TestTrackRepositoryGetByAlbum(t *testing.T) {
 	// Init
 	type mockBehavior func(albumID uint32, tracks []models.Track)
 
@@ -538,9 +538,11 @@ func TestTrackRepositoryPostgreSQL_GetByAlbum(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	const defaultAlbumID uint32 = 1
@@ -569,13 +571,9 @@ func TestTrackRepositoryPostgreSQL_GetByAlbum(t *testing.T) {
 			mockBehavior: func(albumID uint32, t []models.Track) {
 				tablesMock.EXPECT().Tracks().Return(trackTable)
 
-				rows := sqlxMock.NewRows(
-					[]string{"id", "name", "album_id", "album_position",
-						"cover_src", "record_src", "listens", "duration"})
-				for ind := range t {
-					rows.AddRow(t[ind].ID, t[ind].Name, t[ind].AlbumID,
-						t[ind].CoverSrc, t[ind].RecordSrc, t[ind].Listens, t[ind].Duration)
-				}
+				rows := sqlxMock.NewRows([]string{"id", "name", "album_id", "album_position", "cover_src", "record_src", "listens"}).
+					AddRow(t[0].ID, t[0].Name, t[0].AlbumID, t[0].AlbumPosition, t[0].CoverSrc, t[0].RecordSrc, t[0].Listens).
+					AddRow(t[1].ID, t[1].Name, t[1].AlbumID, t[1].AlbumPosition, t[1].CoverSrc, t[1].RecordSrc, t[1].Listens)
 				sqlxMock.ExpectQuery(fmt.Sprintf("SELECT (.+) FROM %s", trackTable)).
 					WithArgs(albumID).
 					WillReturnRows(rows)
@@ -628,7 +626,7 @@ func TestTrackRepositoryPostgreSQL_GetByAlbum(t *testing.T) {
 	}
 }
 
-func TestTrackRepositoryPostgreSQL_GetLikedByUser(t *testing.T) {
+func TestTrackRepositoryGetLikedByUser(t *testing.T) {
 	// Init
 	type mockBehavior func(userID uint32, tracks []models.Track)
 
@@ -640,9 +638,10 @@ func TestTrackRepositoryPostgreSQL_GetLikedByUser(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	const defaultUserID uint32 = 1
@@ -662,13 +661,9 @@ func TestTrackRepositoryPostgreSQL_GetLikedByUser(t *testing.T) {
 				tablesMock.EXPECT().Tracks().Return(trackTable)
 				tablesMock.EXPECT().LikedTracks().Return(likedTracksTable)
 
-				rows := sqlxMock.NewRows(
-					[]string{"id", "name", "album_id", "cover_src", "record_src", "listens", "duration"})
-				for ind := range t {
-					rows.AddRow(t[ind].ID, t[ind].Name, t[ind].AlbumID,
-						t[ind].CoverSrc, t[ind].RecordSrc, t[ind].Listens, t[ind].Duration)
-				}
-
+				rows := sqlxMock.NewRows([]string{"id", "name", "album_id", "cover_src", "record_src", "listens"}).
+					AddRow(t[0].ID, t[0].Name, t[0].AlbumID, t[0].CoverSrc, t[0].RecordSrc, t[0].Listens).
+					AddRow(t[1].ID, t[1].Name, t[1].AlbumID, t[1].CoverSrc, t[1].RecordSrc, t[1].Listens)
 				sqlxMock.ExpectQuery(fmt.Sprintf("SELECT (.+) FROM %s t INNER JOIN %s",
 					trackTable, likedTracksTable)).
 					WithArgs(userID).
@@ -726,7 +721,7 @@ func TestTrackRepositoryPostgreSQL_GetLikedByUser(t *testing.T) {
 	}
 }
 
-func TestTrackRepositoryPostgreSQL_Like(t *testing.T) {
+func TestTrackRepositoryLike(t *testing.T) {
 	// Init
 	type mockBehavior func(trackID, userID uint32)
 
@@ -743,9 +738,11 @@ func TestTrackRepositoryPostgreSQL_Like(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	const defaultTrackToLikeID uint32 = 1
@@ -822,7 +819,7 @@ func TestTrackRepositoryPostgreSQL_Like(t *testing.T) {
 	}
 }
 
-func TestTrackRepositoryPostgreSQL_DeleteLike(t *testing.T) {
+func TestTrackRepositoryDeleteLike(t *testing.T) {
 	// Init
 	type mockBehavior func(trackID uint32, userID uint32)
 
@@ -839,9 +836,11 @@ func TestTrackRepositoryPostgreSQL_DeleteLike(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := trackMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	// Test filling
 	defaultLikeInfo := LikeInfo{

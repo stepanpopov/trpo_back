@@ -42,21 +42,19 @@ func NewHandler(alu album.Usecase, aru artist.Usecase, l logger.Logger) *Handler
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.UnathorizedUser, http.StatusUnauthorized, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, commonHTTP.UnathorizedUser, http.StatusUnauthorized, h.logger, err)
 		return
 	}
 
 	var aci albumCreateInput
 	if err := json.NewDecoder(r.Body).Decode(&aci); err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger, err)
 		return
 	}
 
 	if err := aci.validateAndEscape(); err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger, err)
+		h.logger.Infof("Creating album input validation failed: %s", err.Error())
+		commonHTTP.ErrorResponse(w, commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger)
 		return
 	}
 
@@ -66,13 +64,11 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var errForbiddenUser *models.ForbiddenUserError
 		if errors.As(err, &errForbiddenUser) {
-			commonHTTP.ErrorResponseWithErrLogging(w, r,
-				albumCreateNorights, http.StatusForbidden, h.logger, err)
+			commonHTTP.ErrorResponseWithErrLogging(w, albumCreateNorights, http.StatusForbidden, h.logger, err)
 			return
 		}
 
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumCreateServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumCreateServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -93,8 +89,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	albumID, err := commonHTTP.GetAlbumIDFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger, err)
+		h.logger.Infof("Get album by id: %v", err)
+		commonHTTP.ErrorResponse(w, commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger)
 		return
 	}
 
@@ -102,28 +98,24 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var errNoSuchAlbum *models.NoSuchAlbumError
 		if errors.As(err, &errNoSuchAlbum) {
-			commonHTTP.ErrorResponseWithErrLogging(w, r,
-				albumNotFound, http.StatusBadRequest, h.logger, err)
+			commonHTTP.ErrorResponseWithErrLogging(w, albumNotFound, http.StatusBadRequest, h.logger, err)
 			return
 		}
 
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil && !errors.Is(err, commonHTTP.ErrUnauthorized) {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	resp, err := models.AlbumTransferFromEntry(r.Context(), *album, user, h.albumServices.IsLiked,
 		h.artistServices.IsLiked, h.artistServices.GetByAlbum)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -143,15 +135,14 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	albumID, err := commonHTTP.GetAlbumIDFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger, err)
+		h.logger.Infof("Get album's id: %v", err)
+		commonHTTP.ErrorResponse(w, commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger)
 		return
 	}
 
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.UnathorizedUser, http.StatusUnauthorized, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, commonHTTP.UnathorizedUser, http.StatusUnauthorized, h.logger, err)
 		return
 	}
 
@@ -159,20 +150,17 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var errForbiddenUser *models.ForbiddenUserError
 		if errors.As(err, &errForbiddenUser) {
-			commonHTTP.ErrorResponseWithErrLogging(w, r,
-				albumDeleteNoRights, http.StatusForbidden, h.logger, err)
+			commonHTTP.ErrorResponseWithErrLogging(w, albumDeleteNoRights, http.StatusForbidden, h.logger, err)
 			return
 		}
 
 		var errNoSuchAlbum *models.NoSuchAlbumError
 		if errors.As(err, &errNoSuchAlbum) {
-			commonHTTP.ErrorResponseWithErrLogging(w, r,
-				albumNotFound, http.StatusBadRequest, h.logger, err)
+			commonHTTP.ErrorResponseWithErrLogging(w, albumNotFound, http.StatusBadRequest, h.logger, err)
 			return
 		}
 
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumDeleteServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumDeleteServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -192,8 +180,8 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetByArtist(w http.ResponseWriter, r *http.Request) {
 	artistID, err := commonHTTP.GetArtistIDFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger, err)
+		h.logger.Infof("Get artist by id: %v", err)
+		commonHTTP.ErrorResponse(w, commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger)
 		return
 	}
 
@@ -201,28 +189,24 @@ func (h *Handler) GetByArtist(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var errNoSuchArtist *models.NoSuchArtistError
 		if errors.As(err, &errNoSuchArtist) {
-			commonHTTP.ErrorResponseWithErrLogging(w, r,
-				artistNotFound, http.StatusBadRequest, h.logger, err)
+			commonHTTP.ErrorResponseWithErrLogging(w, artistNotFound, http.StatusBadRequest, h.logger, err)
 			return
 		}
 
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil && !errors.Is(err, commonHTTP.ErrUnauthorized) {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
-	resp, err := models.AlbumTransferFromQuery(r.Context(), albums, user,
-		h.albumServices.IsLiked, h.artistServices.IsLiked, h.artistServices.GetByAlbum)
+	resp, err := models.AlbumTransferFromQuery(r.Context(), albums, user, h.albumServices.IsLiked,
+		h.artistServices.IsLiked, h.artistServices.GetByAlbum)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -239,23 +223,20 @@ func (h *Handler) GetByArtist(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Feed(w http.ResponseWriter, r *http.Request) {
 	albums, err := h.albumServices.GetFeed(r.Context())
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil && !errors.Is(err, commonHTTP.ErrUnauthorized) {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	resp, err := models.AlbumTransferFromQuery(r.Context(), albums, user, h.albumServices.IsLiked,
 		h.artistServices.IsLiked, h.artistServices.GetByAlbum)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -275,23 +256,20 @@ func (h *Handler) Feed(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetFavorite(w http.ResponseWriter, r *http.Request) {
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	favAlbums, err := h.albumServices.GetLikedByUser(r.Context(), user.ID)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
 	at, err := models.AlbumTransferFromQuery(r.Context(), favAlbums, user, h.albumServices.IsLiked,
 		h.artistServices.IsLiked, h.artistServices.GetByAlbum)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			albumsGetServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, albumsGetServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -310,15 +288,14 @@ func (h *Handler) GetFavorite(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Like(w http.ResponseWriter, r *http.Request) {
 	albumID, err := commonHTTP.GetAlbumIDFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger, err)
+		h.logger.Infof("Get album by id: %v", err)
+		commonHTTP.ErrorResponse(w, commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger)
 		return
 	}
 
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.UnathorizedUser, http.StatusUnauthorized, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, commonHTTP.UnathorizedUser, http.StatusUnauthorized, h.logger, err)
 		return
 	}
 
@@ -326,13 +303,11 @@ func (h *Handler) Like(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var errNoSuchAlbum *models.NoSuchAlbumError
 		if errors.As(err, &errNoSuchAlbum) {
-			commonHTTP.ErrorResponseWithErrLogging(w, r,
-				albumNotFound, http.StatusBadRequest, h.logger, err)
+			commonHTTP.ErrorResponseWithErrLogging(w, albumNotFound, http.StatusBadRequest, h.logger, err)
 			return
 		}
 
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.SetLikeServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, commonHTTP.SetLikeServerError, http.StatusInternalServerError, h.logger, err)
 		return
 	}
 
@@ -355,15 +330,14 @@ func (h *Handler) Like(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UnLike(w http.ResponseWriter, r *http.Request) {
 	albumID, err := commonHTTP.GetAlbumIDFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger, err)
+		h.logger.Infof("Get album by id: %v", err)
+		commonHTTP.ErrorResponse(w, commonHTTP.InvalidURLParameter, http.StatusBadRequest, h.logger)
 		return
 	}
 
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil {
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.UnathorizedUser, http.StatusUnauthorized, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, commonHTTP.UnathorizedUser, http.StatusUnauthorized, h.logger, err)
 		return
 	}
 
@@ -371,13 +345,12 @@ func (h *Handler) UnLike(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var errNoSuchAlbum *models.NoSuchAlbumError
 		if errors.As(err, &errNoSuchAlbum) {
-			commonHTTP.ErrorResponseWithErrLogging(w, r,
-				albumNotFound, http.StatusBadRequest, h.logger, err)
+			commonHTTP.ErrorResponseWithErrLogging(w, albumNotFound, http.StatusBadRequest, h.logger, err)
 			return
 		}
 
-		commonHTTP.ErrorResponseWithErrLogging(w, r,
-			commonHTTP.DeleteLikeServerError, http.StatusInternalServerError, h.logger, err)
+		commonHTTP.ErrorResponseWithErrLogging(w, commonHTTP.DeleteLikeServerError,
+			http.StatusInternalServerError, h.logger, err)
 		return
 	}
 

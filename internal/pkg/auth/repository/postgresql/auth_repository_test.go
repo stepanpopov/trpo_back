@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	commonTests "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/tests"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	authMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/mocks"
 )
@@ -46,7 +47,7 @@ func defaultUser() (models.User, error) {
 
 var errPqInternal = errors.New("postgres is dead")
 
-func TestAuthRepositoryPostgreSQL_GetUserByAuthData(t *testing.T) {
+func TestAuthPostgresGetUserByAuthData(t *testing.T) {
 	// Init
 	type mockBehavior func(userID, userVersion uint32, u *models.User)
 
@@ -63,9 +64,11 @@ func TestAuthRepositoryPostgreSQL_GetUserByAuthData(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := authMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	u, err := defaultUser()
 	require.NoError(t, err, "can't create default user")
@@ -151,7 +154,7 @@ func TestAuthRepositoryPostgreSQL_GetUserByAuthData(t *testing.T) {
 	}
 }
 
-func TestAuthPostgres_IncreaseUserVersion(t *testing.T) {
+func TestAuthPostgresIncreaseUserVersion(t *testing.T) {
 	// Init
 	type mockBehavior func(userID uint32)
 
@@ -163,9 +166,11 @@ func TestAuthPostgres_IncreaseUserVersion(t *testing.T) {
 
 	c := gomock.NewController(t)
 
+	l := commonTests.MockLogger(c)
+
 	tablesMock := authMocks.NewMockTables(c)
 
-	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock)
+	repo := NewPostgreSQL(sqlx.NewDb(dbMock, "postgres"), tablesMock, l)
 
 	testTable := []struct {
 		name          string

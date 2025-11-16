@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/playlist"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 
 	commonSQL "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/db"
 )
@@ -19,12 +20,14 @@ import (
 type PostgreSQL struct {
 	db     *sqlx.DB
 	tables playlist.Tables
+	logger logger.Logger
 }
 
-func NewPostgreSQL(db *sqlx.DB, t playlist.Tables) *PostgreSQL {
+func NewPostgreSQL(db *sqlx.DB, t playlist.Tables, l logger.Logger) *PostgreSQL {
 	return &PostgreSQL{
 		db:     db,
 		tables: t,
+		logger: l,
 	}
 }
 
@@ -222,7 +225,7 @@ func (p *PostgreSQL) DeleteTrack(ctx context.Context, trackID, playlistID uint32
 	return nil
 }
 
-func (p *PostgreSQL) GetFeed(ctx context.Context, limit uint32) ([]models.Playlist, error) {
+func (p *PostgreSQL) GetFeed(ctx context.Context, amountLimit int) ([]models.Playlist, error) {
 	query := fmt.Sprintf(
 		`SELECT id, name, description, cover_src  
 		FROM %s 
@@ -230,7 +233,7 @@ func (p *PostgreSQL) GetFeed(ctx context.Context, limit uint32) ([]models.Playli
 		p.tables.Playlists())
 
 	var playlists []models.Playlist
-	if err := p.db.SelectContext(ctx, &playlists, query, limit); err != nil {
+	if err := p.db.SelectContext(ctx, &playlists, query, amountLimit); err != nil {
 		return nil, fmt.Errorf("(repo) failed to exec query: %w", err)
 	}
 
@@ -242,8 +245,7 @@ func (p *PostgreSQL) GetByUser(ctx context.Context, userID uint32) ([]models.Pla
 		`SELECT p.id, p.name, p.description, p.cover_src 
 		FROM %s p
 			INNER JOIN %s up ON p.id = up.playlist_id
-		WHERE up.user_id = $1
-		ORDER BY created_at DESC;`,
+		WHERE up.user_id = $1;`,
 		p.tables.Playlists(), p.tables.UsersPlaylists())
 
 	var playlists []models.Playlist
@@ -263,8 +265,7 @@ func (p *PostgreSQL) GetLikedByUser(ctx context.Context, userID uint32) ([]model
 		`SELECT p.id, p.name, p.description, p.cover_src
 		FROM %s p 
 			INNER JOIN %s ua ON p.id = up.playlist_id 
-		WHERE up.user_id = $1
-		ORDER BY liked_at DESC;`,
+		WHERE up.user_id = $1;`,
 		p.tables.Playlists(), p.tables.LikedPlaylists())
 
 	var playlists []models.Playlist
@@ -326,11 +327,11 @@ func (p *PostgreSQL) DeleteLike(ctx context.Context, playlistID, userID uint32) 
 
 func (p *PostgreSQL) IsLiked(ctx context.Context, playlistID, userID uint32) (bool, error) {
 	query := fmt.Sprintf(
-		`SELECT EXISTS(
-			SELECT playlist_id
-			FROM %s
-			WHERE playlist_id = $1 AND user_id = $2
-		);`,
+		`SELECT CASE WHEN 
+			EXISTS(SELECT *
+				FROM %s
+				WHERE playlist_id = $1 AND user_id = $2
+			) THEN TRUE ELSE FALSE END;`,
 		p.tables.LikedPlaylists())
 
 	var isLiked bool

@@ -13,7 +13,7 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 )
 
-func TestUserDeliveryHTTP_CheckUserAuthAndResponse(t *testing.T) {
+func TestUserDeliveryCheckUserAuthAndResponse(t *testing.T) {
 	c := gomock.NewController(t)
 
 	l := commonTests.MockLogger(c)
