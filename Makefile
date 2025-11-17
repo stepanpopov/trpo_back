@@ -1,21 +1,6 @@
 .PHONY: all
 
-# all: clear_media server_start
-
-build:
-	docker-compose down
-	docker-compose build
-
-start:
-	docker-compose down
-	docker-compose up -d
-	docker-compose up
-
-drop_db:
-	rm -r ./pgdata
-
-clean_containers:
-	docker system prune
+all: clear_media server_start
 
 api_start:
 	go run ./cmd/api/main.go
@@ -24,10 +9,7 @@ auth_start:
 	go run ./cmd/auth/auth.go
 
 clear_media:
-	rm -r ./img ./covers ./records ./avatars
-
-lint:
-	go vet ./... && golangci-lint run
+	rm -r ./img
 
 check_coverage:
 	go test -coverpkg=./... -coverprofile=coverage.out ./... \
@@ -43,5 +25,5 @@ check_html_coverage:
 generate_api_docs:
 	swag init -g cmd/api/main.go
 
-generate:
+generate_mocks:
 	go generate ./...

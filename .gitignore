@@ -23,9 +23,6 @@ go.work
 # Logs
 *.log
 
-# Postgres
-pgdata
-
 # Static
 img
 records

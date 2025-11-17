@@ -72,8 +72,6 @@ func InitRouter(
 		})
 
 		r.With(authM.Authorization).Route("/albums", func(r chi.Router) {
-			r.Post("/search", searchH.FindAlbums)
-
 			r.Post("/", albumH.Create)
 			r.Route(albumIdRoute, func(r chi.Router) {
 				r.Get("/", albumH.Get)
@@ -92,8 +90,6 @@ func InitRouter(
 		})
 
 		r.With(authM.Authorization).Route("/playlists", func(r chi.Router) {
-			r.Post("/search", searchH.FindPlaylists)
-
 			r.With(csrfM.CheckCSRFToken).Post("/", playlistH.Create)
 			r.Route(playlistIdRoute, func(r chi.Router) {
 				r.Get("/", playlistH.Get)
@@ -124,8 +120,6 @@ func InitRouter(
 		})
 
 		r.With(authM.Authorization).Route("/artists", func(r chi.Router) {
-			r.Post("/search", searchH.FindArtists)
-
 			r.Post("/", artistH.Create)
 			r.Route(artistIdRoute, func(r chi.Router) {
 				r.Get("/", artistH.Get)
@@ -145,8 +139,6 @@ func InitRouter(
 		})
 
 		r.With(authM.Authorization).Route("/tracks", func(r chi.Router) {
-			r.Post("/search", searchH.FindTracks)
-
 			r.Post("/", trackH.Create)
 			r.Route(trackIdRoute, func(r chi.Router) {
 				r.Get("/", trackH.Get)
