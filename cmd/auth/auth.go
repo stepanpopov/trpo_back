@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 
@@ -34,10 +33,10 @@ func main() {
 		return
 	}
 
-	userRepo := userRepository.NewPostgreSQL(db, tables, logger)
-	authRepo := authRepository.NewPostgreSQL(db, tables, logger)
+	userRepo := userRepository.NewPostgreSQL(db, tables)
+	authRepo := authRepository.NewPostgreSQL(db, tables)
 
-	authUsecase := authUsecase.NewUsecase(authRepo, userRepo, logger)
+	authUsecase := authUsecase.NewUsecase(authRepo, userRepo)
 
 
 	listener, err := net.Listen("tcp", ":"+os.Getenv(cmd.AuthPortParam))
@@ -55,7 +54,5 @@ func main() {
 }
 
 func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error while loading environment: %v", err)
-	}
+	_ = godotenv.Load()
 }

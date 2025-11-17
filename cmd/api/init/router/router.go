@@ -7,6 +7,7 @@ import (
 	_ "github.com/go-park-mail-ru/2023_1_Technokaif/docs"
 	commonHttp "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http/middleware"
+
 	album "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/album/delivery/http"
 	artist "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/delivery/http"
 	auth "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/delivery/http"
@@ -14,6 +15,7 @@ import (
 	csrf "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/csrf/delivery/http"
 	csrfM "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/csrf/delivery/http/middleware"
 	playlist "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/playlist/delivery/http"
+	search "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/search/delivery/http"
 	track "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track/delivery/http"
 	user "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/delivery/http"
 	userM "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/delivery/http/middleware"
@@ -40,6 +42,7 @@ func InitRouter(
 	authM *authM.Middleware,
 	csrfH *csrf.Handler,
 	csrfM *csrfM.Middleware,
+	searchH *search.Handler,
 	loggger logger.Logger) *chi.Mux {
 
 	r := chi.NewRouter()
@@ -69,6 +72,8 @@ func InitRouter(
 		})
 
 		r.With(authM.Authorization).Route("/albums", func(r chi.Router) {
+			r.Post("/search", searchH.FindAlbums)
+
 			r.Post("/", albumH.Create)
 			r.Route(albumIdRoute, func(r chi.Router) {
 				r.Get("/", albumH.Get)
@@ -87,6 +92,8 @@ func InitRouter(
 		})
 
 		r.With(authM.Authorization).Route("/playlists", func(r chi.Router) {
+			r.Post("/search", searchH.FindPlaylists)
+
 			r.With(csrfM.CheckCSRFToken).Post("/", playlistH.Create)
 			r.Route(playlistIdRoute, func(r chi.Router) {
 				r.Get("/", playlistH.Get)
@@ -117,6 +124,8 @@ func InitRouter(
 		})
 
 		r.With(authM.Authorization).Route("/artists", func(r chi.Router) {
+			r.Post("/search", searchH.FindArtists)
+
 			r.Post("/", artistH.Create)
 			r.Route(artistIdRoute, func(r chi.Router) {
 				r.Get("/", artistH.Get)
@@ -136,6 +145,8 @@ func InitRouter(
 		})
 
 		r.With(authM.Authorization).Route("/tracks", func(r chi.Router) {
+			r.Post("/search", searchH.FindTracks)
+
 			r.Post("/", trackH.Create)
 			r.Route(trackIdRoute, func(r chi.Router) {
 				r.Get("/", trackH.Get)
