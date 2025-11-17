@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,13 +12,15 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	commonHTTP "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http"
+	commonHttp "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http"
 	commonTests "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/tests"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	playlistMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/playlist/mocks"
 	trackMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track/mocks"
 	userMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/mocks"
 )
+
+var ctx = context.Background()
 
 var correctUser = models.User{
 	ID: 1,
@@ -41,7 +44,7 @@ func getCorrectUser(t *testing.T) *models.User {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_Create(t *testing.T) {
+func TestPlaylistDeliveryCreate(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase)
 
@@ -88,7 +91,7 @@ func TestPlaylistDeliveryHTTP_Create(t *testing.T) {
 			requestBody: correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Create(
-					gomock.Any(), expectedCallPlaylist, correctUsersID, correctUser.ID,
+					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(uint32(1), nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -99,7 +102,7 @@ func TestPlaylistDeliveryHTTP_Create(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.UnathorizedUser),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
 		},
 		{
 			name: "Incorrect JSON",
@@ -111,7 +114,7 @@ func TestPlaylistDeliveryHTTP_Create(t *testing.T) {
 			}`,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.IncorrectRequestBody),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.IncorrectRequestBody),
 		},
 		{
 			name: "Incorrect Body (no name)",
@@ -122,14 +125,14 @@ func TestPlaylistDeliveryHTTP_Create(t *testing.T) {
 			}`,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.IncorrectRequestBody),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.IncorrectRequestBody),
 		},
 		{
 			name:        "User Has No Rights",
 			user:        &correctUser,
 			requestBody: correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().Create(gomock.Any(), expectedCallPlaylist, correctUsersID, correctUser.ID).
+				pu.EXPECT().Create(ctx, expectedCallPlaylist, correctUsersID, correctUser.ID).
 					Return(uint32(0), &models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -141,7 +144,7 @@ func TestPlaylistDeliveryHTTP_Create(t *testing.T) {
 			requestBody: correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Create(
-					gomock.Any(), expectedCallPlaylist, correctUsersID, correctUser.ID,
+					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(uint32(0), errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -161,7 +164,7 @@ func TestPlaylistDeliveryHTTP_Create(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_Get(t *testing.T) {
+func TestPlaylistDeliveryGet(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase)
 
@@ -226,9 +229,9 @@ func TestPlaylistDeliveryHTTP_Get(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetByID(gomock.Any(), correctPlaylistID).Return(&expectedReturnPlaylist, nil)
-				pu.EXPECT().IsLiked(gomock.Any(), correctPlaylistID, correctUser.ID).Return(true, nil)
-				uu.EXPECT().GetByPlaylist(gomock.Any(), correctPlaylistID).Return(expectedReturnUsers, nil)
+				pu.EXPECT().GetByID(ctx, correctPlaylistID).Return(&expectedReturnPlaylist, nil)
+				pu.EXPECT().IsLiked(ctx, correctPlaylistID, correctUser.ID).Return(true, nil)
+				uu.EXPECT().GetByPlaylist(ctx, correctPlaylistID).Return(expectedReturnUsers, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
@@ -238,14 +241,14 @@ func TestPlaylistDeliveryHTTP_Get(t *testing.T) {
 			playlistIDPath:   "incorrect",
 			mockBehavior:     func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:           "No Playlist To Get",
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetByID(gomock.Any(), correctPlaylistID).Return(nil, &models.NoSuchPlaylistError{})
+				pu.EXPECT().GetByID(ctx, correctPlaylistID).Return(nil, &models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(playlistNotFound),
@@ -255,7 +258,7 @@ func TestPlaylistDeliveryHTTP_Get(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetByID(gomock.Any(), correctPlaylistID).Return(nil, errors.New(""))
+				pu.EXPECT().GetByID(ctx, correctPlaylistID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistGetServerError),
@@ -265,8 +268,8 @@ func TestPlaylistDeliveryHTTP_Get(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetByID(gomock.Any(), correctPlaylistID).Return(&expectedReturnPlaylist, nil)
-				uu.EXPECT().GetByPlaylist(gomock.Any(), correctPlaylistID).Return(nil, errors.New(""))
+				pu.EXPECT().GetByID(ctx, correctPlaylistID).Return(&expectedReturnPlaylist, nil)
+				uu.EXPECT().GetByPlaylist(ctx, correctPlaylistID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistGetServerError),
@@ -285,7 +288,7 @@ func TestPlaylistDeliveryHTTP_Get(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
+func TestPlaylistDeliveryUpdate(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase)
 
@@ -339,7 +342,7 @@ func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
 			requestBody:    correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().UpdateInfoAndMembers(
-					gomock.Any(), expectedCallPlaylist, correctUsersID, correctUser.ID,
+					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -350,7 +353,7 @@ func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
 			playlistIDPath:   "incorrect",
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:             "No User",
@@ -358,7 +361,7 @@ func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.UnathorizedUser),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
 		},
 		{
 			name:           "Incorrect JSON",
@@ -371,7 +374,7 @@ func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
 			}`,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.IncorrectRequestBody),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.IncorrectRequestBody),
 		},
 		{
 			name:           "Incorrect Body (no name)",
@@ -383,7 +386,7 @@ func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
 			}`,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.IncorrectRequestBody),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.IncorrectRequestBody),
 		},
 		{
 			name:           "User Has No Rights",
@@ -392,7 +395,7 @@ func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
 			requestBody:    correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().UpdateInfoAndMembers(
-					gomock.Any(), expectedCallPlaylist, correctUsersID, correctUser.ID,
+					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -405,7 +408,7 @@ func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
 			requestBody:    correctRequestBody,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().UpdateInfoAndMembers(
-					gomock.Any(), expectedCallPlaylist, correctUsersID, correctUser.ID,
+					ctx, expectedCallPlaylist, correctUsersID, correctUser.ID,
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -425,7 +428,7 @@ func TestPlaylistDeliveryHTTP_Update(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_Delete(t *testing.T) {
+func TestPlaylistDeliveryDelete(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase)
 
@@ -460,7 +463,7 @@ func TestPlaylistDeliveryHTTP_Delete(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Delete(
-					gomock.Any(), correctPlaylistID, correctUser.ID,
+					ctx, correctPlaylistID, correctUser.ID,
 				).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -471,7 +474,7 @@ func TestPlaylistDeliveryHTTP_Delete(t *testing.T) {
 			playlistIDPath:   "incorrect",
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:             "No User",
@@ -479,7 +482,7 @@ func TestPlaylistDeliveryHTTP_Delete(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.UnathorizedUser),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
 		},
 		{
 			name:           "User Has No Rights",
@@ -487,7 +490,7 @@ func TestPlaylistDeliveryHTTP_Delete(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Delete(
-					gomock.Any(), correctPlaylistID, correctUser.ID,
+					ctx, correctPlaylistID, correctUser.ID,
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -499,7 +502,7 @@ func TestPlaylistDeliveryHTTP_Delete(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Delete(
-					gomock.Any(), correctPlaylistID, correctUser.ID,
+					ctx, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -511,7 +514,7 @@ func TestPlaylistDeliveryHTTP_Delete(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().Delete(
-					gomock.Any(), correctPlaylistID, correctUser.ID,
+					ctx, correctPlaylistID, correctUser.ID,
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -531,7 +534,7 @@ func TestPlaylistDeliveryHTTP_Delete(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
+func TestPlaylistDeliveryAddTrack(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase)
 
@@ -570,7 +573,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					gomock.Any(), correctPlaylistID, correctTrackID, correctUser.ID,
+					ctx, correctPlaylistID, correctTrackID, correctUser.ID,
 				).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -582,7 +585,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 			trackIDPath:      correctTrackIDPath,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:             "Incorrect Track ID In Path",
@@ -590,7 +593,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 			trackIDPath:      "0",
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:             "No User",
@@ -599,7 +602,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.UnathorizedUser),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
 		},
 		{
 			name:           "User Has No Rights",
@@ -608,7 +611,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -621,7 +624,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -634,7 +637,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchTrackError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -647,7 +650,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().AddTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -668,7 +671,7 @@ func TestPlaylistDeliveryHTTP_AddTrack(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
+func TestPlaylistDeliveryDeleteTrack(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase)
 
@@ -707,7 +710,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
@@ -719,7 +722,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 			trackIDPath:      correctTrackIDPath,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:             "Incorrect Track ID In Path",
@@ -727,7 +730,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 			trackIDPath:      "0",
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:             "No User",
@@ -736,7 +739,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.UnathorizedUser),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
 		},
 		{
 			name:           "User Has No Rights",
@@ -745,7 +748,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -758,7 +761,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -771,7 +774,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(&models.NoSuchTrackError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -784,7 +787,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
 				pu.EXPECT().DeleteTrack(
-					gomock.Any(), correctTrackID, correctPlaylistID, correctUser.ID,
+					ctx, correctTrackID, correctPlaylistID, correctUser.ID,
 				).Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -805,7 +808,7 @@ func TestPlaylistDeliveryHTTP_DeleteTrack(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_Feed(t *testing.T) {
+func TestPlaylistDeliveryFeed(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase)
 
@@ -892,10 +895,10 @@ func TestPlaylistDeliveryHTTP_Feed(t *testing.T) {
 		{
 			name: "Common",
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetFeed(gomock.Any()).Return(expectedReturnPlaylists, nil)
+				pu.EXPECT().GetFeed(ctx).Return(expectedReturnPlaylists, nil)
 				for _, p := range expectedReturnPlaylists {
 					// Makes up only for 1:1 users:playlists
-					uu.EXPECT().GetByPlaylist(gomock.Any(), p.ID).Return(expectedReturnUsers[0:], nil)
+					uu.EXPECT().GetByPlaylist(ctx, p.ID).Return(expectedReturnUsers[0:], nil)
 				}
 			},
 			expectedStatus:   http.StatusOK,
@@ -904,7 +907,7 @@ func TestPlaylistDeliveryHTTP_Feed(t *testing.T) {
 		{
 			name: "No Playlists",
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetFeed(gomock.Any()).Return([]models.Playlist{}, nil)
+				pu.EXPECT().GetFeed(ctx).Return([]models.Playlist{}, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: `[]`,
@@ -912,7 +915,7 @@ func TestPlaylistDeliveryHTTP_Feed(t *testing.T) {
 		{
 			name: "Playlists Issues",
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetFeed(gomock.Any()).Return(nil, errors.New(""))
+				pu.EXPECT().GetFeed(ctx).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistsGetServerError),
@@ -920,8 +923,8 @@ func TestPlaylistDeliveryHTTP_Feed(t *testing.T) {
 		{
 			name: "Users Issues",
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase) {
-				pu.EXPECT().GetFeed(gomock.Any()).Return(expectedReturnPlaylists, nil)
-				uu.EXPECT().GetByPlaylist(gomock.Any(), expectedReturnPlaylists[0].ID).Return(nil, errors.New(""))
+				pu.EXPECT().GetFeed(ctx).Return(expectedReturnPlaylists, nil)
+				uu.EXPECT().GetByPlaylist(ctx, expectedReturnPlaylists[0].ID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistsGetServerError),
@@ -940,7 +943,7 @@ func TestPlaylistDeliveryHTTP_Feed(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_GetFavorite(t *testing.T) {
+func TestPlaylistDeliveryGetFavorite(t *testing.T) {
 	type mockBehavior func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase, userID uint32)
 
 	c := gomock.NewController(t)
@@ -1032,10 +1035,10 @@ func TestPlaylistDeliveryHTTP_GetFavorite(t *testing.T) {
 			name: "Common",
 			user: &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase, userID uint32) {
-				pu.EXPECT().GetLikedByUser(gomock.Any(), userID).Return(expectedReturnPlaylists, nil)
+				pu.EXPECT().GetLikedByUser(ctx, userID).Return(expectedReturnPlaylists, nil)
 				for _, playlist := range expectedReturnPlaylists {
-					pu.EXPECT().IsLiked(gomock.Any(), playlist.ID, correctUserID).Return(true, nil)
-					uu.EXPECT().GetByPlaylist(gomock.Any(), playlist.ID).Return(expectedReturnUsers, nil)
+					pu.EXPECT().IsLiked(ctx, playlist.ID, correctUserID).Return(true, nil)
+					uu.EXPECT().GetByPlaylist(ctx, playlist.ID).Return(expectedReturnUsers, nil)
 				}
 			},
 			expectedStatus:   http.StatusOK,
@@ -1045,7 +1048,7 @@ func TestPlaylistDeliveryHTTP_GetFavorite(t *testing.T) {
 			name: "Playlists Issue",
 			user: &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase, userID uint32) {
-				pu.EXPECT().GetLikedByUser(gomock.Any(), userID).Return(nil, errors.New(""))
+				pu.EXPECT().GetLikedByUser(ctx, userID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistsGetServerError),
@@ -1054,8 +1057,8 @@ func TestPlaylistDeliveryHTTP_GetFavorite(t *testing.T) {
 			name: "Users Issue",
 			user: &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase, uu *userMocks.MockUsecase, userID uint32) {
-				pu.EXPECT().GetLikedByUser(gomock.Any(), userID).Return(expectedReturnPlaylists, nil)
-				uu.EXPECT().GetByPlaylist(gomock.Any(), expectedReturnPlaylists[0].ID).Return(nil, errors.New(""))
+				pu.EXPECT().GetLikedByUser(ctx, userID).Return(expectedReturnPlaylists, nil)
+				uu.EXPECT().GetByPlaylist(ctx, expectedReturnPlaylists[0].ID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(playlistsGetServerError),
@@ -1075,7 +1078,7 @@ func TestPlaylistDeliveryHTTP_GetFavorite(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_Like(t *testing.T) {
+func TestPlaylistDeliveryLike(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase)
 
@@ -1109,20 +1112,20 @@ func TestPlaylistDeliveryHTTP_Like(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().SetLike(gomock.Any(), correctPlaylistID, correctUser.ID).Return(true, nil)
+				pu.EXPECT().SetLike(ctx, correctPlaylistID, correctUser.ID).Return(true, nil)
 			},
 			expectedStatus:   http.StatusOK,
-			expectedResponse: commonTests.OKResponse(commonHTTP.LikeSuccess),
+			expectedResponse: commonTests.OKResponse(commonHttp.LikeSuccess),
 		},
 		{
 			name:           "Already liked (Anyway Success)",
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().SetLike(gomock.Any(), correctPlaylistID, correctUser.ID).Return(false, nil)
+				pu.EXPECT().SetLike(ctx, correctPlaylistID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
-			expectedResponse: commonTests.OKResponse(commonHTTP.LikeAlreadyExists),
+			expectedResponse: commonTests.OKResponse(commonHttp.LikeAlreadyExists),
 		},
 		{
 			name:             "Incorrect ID In Path",
@@ -1130,7 +1133,7 @@ func TestPlaylistDeliveryHTTP_Like(t *testing.T) {
 			user:             &correctUser,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:             "No User",
@@ -1138,14 +1141,14 @@ func TestPlaylistDeliveryHTTP_Like(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.UnathorizedUser),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
 		},
 		{
 			name:           "No Playlist To Like",
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().SetLike(gomock.Any(), correctPlaylistID, correctUser.ID).Return(false, &models.NoSuchPlaylistError{})
+				pu.EXPECT().SetLike(ctx, correctPlaylistID, correctUser.ID).Return(false, &models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(playlistNotFound),
@@ -1155,10 +1158,10 @@ func TestPlaylistDeliveryHTTP_Like(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().SetLike(gomock.Any(), correctPlaylistID, correctUser.ID).Return(false, errors.New(""))
+				pu.EXPECT().SetLike(ctx, correctPlaylistID, correctUser.ID).Return(false, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.SetLikeServerError),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.SetLikeServerError),
 		},
 	}
 
@@ -1174,7 +1177,7 @@ func TestPlaylistDeliveryHTTP_Like(t *testing.T) {
 	}
 }
 
-func TestPlaylistDeliveryHTTP_UnLike(t *testing.T) {
+func TestPlaylistDeliveryUnLike(t *testing.T) {
 	// Init
 	type mockBehavior func(pu *playlistMocks.MockUsecase)
 
@@ -1208,20 +1211,20 @@ func TestPlaylistDeliveryHTTP_UnLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().UnLike(gomock.Any(), correctPlaylistID, correctUser.ID).Return(true, nil)
+				pu.EXPECT().UnLike(ctx, correctPlaylistID, correctUser.ID).Return(true, nil)
 			},
 			expectedStatus:   http.StatusOK,
-			expectedResponse: commonTests.OKResponse(commonHTTP.UnLikeSuccess),
+			expectedResponse: commonTests.OKResponse(commonHttp.UnLikeSuccess),
 		},
 		{
 			name:           "Wasn't Liked (Anyway Success)",
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().UnLike(gomock.Any(), correctPlaylistID, correctUser.ID).Return(false, nil)
+				pu.EXPECT().UnLike(ctx, correctPlaylistID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
-			expectedResponse: commonTests.OKResponse(commonHTTP.LikeDoesntExist),
+			expectedResponse: commonTests.OKResponse(commonHttp.LikeDoesntExist),
 		},
 		{
 			name:             "Incorrect ID In Path",
@@ -1229,7 +1232,7 @@ func TestPlaylistDeliveryHTTP_UnLike(t *testing.T) {
 			user:             &correctUser,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.InvalidURLParameter),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.InvalidURLParameter),
 		},
 		{
 			name:             "No User",
@@ -1237,15 +1240,14 @@ func TestPlaylistDeliveryHTTP_UnLike(t *testing.T) {
 			user:             nil,
 			mockBehavior:     func(pu *playlistMocks.MockUsecase) {},
 			expectedStatus:   http.StatusUnauthorized,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.UnathorizedUser),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.UnathorizedUser),
 		},
 		{
 			name:           "No Playlist To Unlike",
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().UnLike(gomock.Any(), correctPlaylistID, correctUser.ID).
-					Return(false, &models.NoSuchPlaylistError{})
+				pu.EXPECT().UnLike(ctx, correctPlaylistID, correctUser.ID).Return(false, &models.NoSuchPlaylistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(playlistNotFound),
@@ -1255,11 +1257,10 @@ func TestPlaylistDeliveryHTTP_UnLike(t *testing.T) {
 			playlistIDPath: correctPlaylistIDPath,
 			user:           &correctUser,
 			mockBehavior: func(pu *playlistMocks.MockUsecase) {
-				pu.EXPECT().UnLike(gomock.Any(), correctPlaylistID, correctUser.ID).
-					Return(false, errors.New(""))
+				pu.EXPECT().UnLike(ctx, correctPlaylistID, correctUser.ID).Return(false, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
-			expectedResponse: commonTests.ErrorResponse(commonHTTP.DeleteLikeServerError),
+			expectedResponse: commonTests.ErrorResponse(commonHttp.DeleteLikeServerError),
 		},
 	}
 

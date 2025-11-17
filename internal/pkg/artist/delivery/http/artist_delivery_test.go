@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,11 +17,13 @@ import (
 	artistMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/mocks"
 )
 
+var ctx = context.Background()
+
 var correctUser = models.User{
 	ID: 1,
 }
 
-func TestArtistDeliveryHTTP_Create(t *testing.T) {
+func TestArtistDeliveryCreate(t *testing.T) {
 	// Init
 	type mockBehavior func(au *artistMocks.MockUsecase)
 
@@ -61,7 +64,7 @@ func TestArtistDeliveryHTTP_Create(t *testing.T) {
 			user:        &correctUser,
 			requestBody: correctRequestBody,
 			mockBehavior: func(tu *artistMocks.MockUsecase) {
-				tu.EXPECT().Create(gomock.Any(), expectedCallArtist).Return(uint32(1), nil)
+				tu.EXPECT().Create(ctx, expectedCallArtist).Return(uint32(1), nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: `{"id": 1}`,
@@ -97,7 +100,7 @@ func TestArtistDeliveryHTTP_Create(t *testing.T) {
 			user:        &correctUser,
 			requestBody: correctRequestBody,
 			mockBehavior: func(tu *artistMocks.MockUsecase) {
-				tu.EXPECT().Create(gomock.Any(), expectedCallArtist).Return(uint32(0), errors.New(""))
+				tu.EXPECT().Create(ctx, expectedCallArtist).Return(uint32(0), errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(artistCreateServerError),
@@ -116,7 +119,7 @@ func TestArtistDeliveryHTTP_Create(t *testing.T) {
 	}
 }
 
-func TestArtistDeliveryHTTP_Get(t *testing.T) {
+func TestArtistDeliveryGet(t *testing.T) {
 	// Init
 	type mockBehavior func(au *artistMocks.MockUsecase)
 
@@ -162,8 +165,8 @@ func TestArtistDeliveryHTTP_Get(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().GetByID(gomock.Any(), correctArtistID).Return(&expectedReturnArtist, nil)
-				au.EXPECT().IsLiked(gomock.Any(), correctArtistID, correctUser.ID).Return(false, nil)
+				au.EXPECT().GetByID(ctx, correctArtistID).Return(&expectedReturnArtist, nil)
+				au.EXPECT().IsLiked(ctx, correctArtistID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
@@ -180,7 +183,7 @@ func TestArtistDeliveryHTTP_Get(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().GetByID(gomock.Any(), correctArtistID).Return(nil, &models.NoSuchArtistError{})
+				au.EXPECT().GetByID(ctx, correctArtistID).Return(nil, &models.NoSuchArtistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: commonTests.ErrorResponse(artistNotFound),
@@ -190,7 +193,7 @@ func TestArtistDeliveryHTTP_Get(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().GetByID(gomock.Any(), correctArtistID).Return(nil, errors.New(""))
+				au.EXPECT().GetByID(ctx, correctArtistID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(artistGetServerError),
@@ -209,7 +212,7 @@ func TestArtistDeliveryHTTP_Get(t *testing.T) {
 	}
 }
 
-func TestArtistDeliveryHTTP_Delete(t *testing.T) {
+func TestArtistDeliveryDelete(t *testing.T) {
 	// Init
 	type mockBehavior func(au *artistMocks.MockUsecase)
 
@@ -242,7 +245,7 @@ func TestArtistDeliveryHTTP_Delete(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().Delete(gomock.Any(), correctArtistID, correctUser.ID).Return(nil)
+				au.EXPECT().Delete(ctx, correctArtistID, correctUser.ID).Return(nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(artistDeletedSuccessfully),
@@ -267,7 +270,7 @@ func TestArtistDeliveryHTTP_Delete(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().Delete(gomock.Any(), correctArtistID, correctUser.ID).
+				au.EXPECT().Delete(ctx, correctArtistID, correctUser.ID).
 					Return(&models.ForbiddenUserError{})
 			},
 			expectedStatus:   http.StatusForbidden,
@@ -278,7 +281,7 @@ func TestArtistDeliveryHTTP_Delete(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().Delete(gomock.Any(), correctArtistID, correctUser.ID).
+				au.EXPECT().Delete(ctx, correctArtistID, correctUser.ID).
 					Return(&models.NoSuchArtistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -289,7 +292,7 @@ func TestArtistDeliveryHTTP_Delete(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().Delete(gomock.Any(), correctArtistID, correctUser.ID).
+				au.EXPECT().Delete(ctx, correctArtistID, correctUser.ID).
 					Return(errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -309,7 +312,7 @@ func TestArtistDeliveryHTTP_Delete(t *testing.T) {
 	}
 }
 
-func TestArtistDeliveryHTTP_Feed(t *testing.T) {
+func TestArtistDeliveryFeed(t *testing.T) {
 	// Init
 	type mockBehavior func(au *artistMocks.MockUsecase)
 
@@ -385,7 +388,7 @@ func TestArtistDeliveryHTTP_Feed(t *testing.T) {
 		{
 			name: "Common",
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().GetFeed(gomock.Any()).Return(expectedReturnArtists, nil)
+				au.EXPECT().GetFeed(ctx).Return(expectedReturnArtists, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: correctResponse,
@@ -393,7 +396,7 @@ func TestArtistDeliveryHTTP_Feed(t *testing.T) {
 		{
 			name: "No Artists",
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().GetFeed(gomock.Any()).Return([]models.Artist{}, nil)
+				au.EXPECT().GetFeed(ctx).Return([]models.Artist{}, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: `[]`,
@@ -401,7 +404,7 @@ func TestArtistDeliveryHTTP_Feed(t *testing.T) {
 		{
 			name: "Server Error",
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().GetFeed(gomock.Any()).Return(nil, errors.New(""))
+				au.EXPECT().GetFeed(ctx).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(artistsGetServerError),
@@ -420,7 +423,7 @@ func TestArtistDeliveryHTTP_Feed(t *testing.T) {
 	}
 }
 
-func TestArtistDeliveryHTTP_GetFavorite(t *testing.T) {
+func TestArtistDeliveryGetFavorite(t *testing.T) {
 	type mockBehavior func(aru *artistMocks.MockUsecase, userID uint32)
 
 	c := gomock.NewController(t)
@@ -478,9 +481,9 @@ func TestArtistDeliveryHTTP_GetFavorite(t *testing.T) {
 			name: "Common",
 			user: &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase, userID uint32) {
-				au.EXPECT().GetLikedByUser(gomock.Any(), userID).Return(expectedReturnArtists, nil)
+				au.EXPECT().GetLikedByUser(ctx, userID).Return(expectedReturnArtists, nil)
 				for _, a := range expectedReturnArtists {
-					au.EXPECT().IsLiked(gomock.Any(), a.ID, userID).Return(true, nil)
+					au.EXPECT().IsLiked(ctx, a.ID, userID).Return(true, nil)
 				}
 			},
 			expectedStatus:   http.StatusOK,
@@ -490,7 +493,7 @@ func TestArtistDeliveryHTTP_GetFavorite(t *testing.T) {
 			name: "Artists Issue",
 			user: &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase, userID uint32) {
-				au.EXPECT().GetLikedByUser(gomock.Any(), userID).Return(nil, errors.New(""))
+				au.EXPECT().GetLikedByUser(ctx, userID).Return(nil, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
 			expectedResponse: commonTests.ErrorResponse(artistsGetServerError),
@@ -509,7 +512,7 @@ func TestArtistDeliveryHTTP_GetFavorite(t *testing.T) {
 	}
 }
 
-func TestArtistDeliveryHTTP_Like(t *testing.T) {
+func TestArtistDeliveryLike(t *testing.T) {
 	// Init
 	type mockBehavior func(au *artistMocks.MockUsecase)
 
@@ -542,7 +545,7 @@ func TestArtistDeliveryHTTP_Like(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().SetLike(gomock.Any(), correctArtistID, correctUser.ID).Return(true, nil)
+				au.EXPECT().SetLike(ctx, correctArtistID, correctUser.ID).Return(true, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(commonHttp.LikeSuccess),
@@ -552,7 +555,7 @@ func TestArtistDeliveryHTTP_Like(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().SetLike(gomock.Any(), correctArtistID, correctUser.ID).Return(false, nil)
+				au.EXPECT().SetLike(ctx, correctArtistID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(commonHttp.LikeAlreadyExists),
@@ -578,7 +581,7 @@ func TestArtistDeliveryHTTP_Like(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().SetLike(gomock.Any(), correctArtistID, correctUser.ID).
+				au.EXPECT().SetLike(ctx, correctArtistID, correctUser.ID).
 					Return(false, &models.NoSuchArtistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -589,7 +592,7 @@ func TestArtistDeliveryHTTP_Like(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().SetLike(gomock.Any(), correctArtistID, correctUser.ID).
+				au.EXPECT().SetLike(ctx, correctArtistID, correctUser.ID).
 					Return(false, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,
@@ -609,7 +612,7 @@ func TestArtistDeliveryHTTP_Like(t *testing.T) {
 	}
 }
 
-func TestArtistDeliveryHTTP_UnLike(t *testing.T) {
+func TestArtistDeliveryUnLike(t *testing.T) {
 	// Init
 	type mockBehavior func(au *artistMocks.MockUsecase)
 
@@ -642,7 +645,7 @@ func TestArtistDeliveryHTTP_UnLike(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().UnLike(gomock.Any(), correctArtistID, correctUser.ID).Return(true, nil)
+				au.EXPECT().UnLike(ctx, correctArtistID, correctUser.ID).Return(true, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(commonHttp.UnLikeSuccess),
@@ -652,7 +655,7 @@ func TestArtistDeliveryHTTP_UnLike(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().UnLike(gomock.Any(), correctArtistID, correctUser.ID).Return(false, nil)
+				au.EXPECT().UnLike(ctx, correctArtistID, correctUser.ID).Return(false, nil)
 			},
 			expectedStatus:   http.StatusOK,
 			expectedResponse: commonTests.OKResponse(commonHttp.LikeDoesntExist),
@@ -678,7 +681,7 @@ func TestArtistDeliveryHTTP_UnLike(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().UnLike(gomock.Any(), correctArtistID, correctUser.ID).
+				au.EXPECT().UnLike(ctx, correctArtistID, correctUser.ID).
 					Return(false, &models.NoSuchArtistError{})
 			},
 			expectedStatus:   http.StatusBadRequest,
@@ -689,7 +692,7 @@ func TestArtistDeliveryHTTP_UnLike(t *testing.T) {
 			artistIDPath: correctArtistIDPath,
 			user:         &correctUser,
 			mockBehavior: func(au *artistMocks.MockUsecase) {
-				au.EXPECT().UnLike(gomock.Any(), correctArtistID, correctUser.ID).
+				au.EXPECT().UnLike(ctx, correctArtistID, correctUser.ID).
 					Return(false, errors.New(""))
 			},
 			expectedStatus:   http.StatusInternalServerError,

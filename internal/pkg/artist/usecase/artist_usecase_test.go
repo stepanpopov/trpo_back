@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	commonTests "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/tests"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	artistMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/mocks"
 	"github.com/golang/mock/gomock"
@@ -13,14 +14,16 @@ import (
 
 var ctx = context.Background()
 
-func TestArtistUsecase_Create(t *testing.T) {
+func TestArtistUsecaseCreate(t *testing.T) {
 	type mockBehavior func(ar *artistMocks.MockRepository, artist models.Artist)
 
 	c := gomock.NewController(t)
 
 	au := artistMocks.NewMockRepository(c)
 
-	u := NewUsecase(au)
+	l := commonTests.MockLogger(c)
+
+	u := NewUsecase(au, l)
 
 	var userID uint32 = 1
 	correctArtist := models.Artist{

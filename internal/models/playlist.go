@@ -43,15 +43,15 @@ func PlaylistTransferFromEntry(ctx context.Context, p Playlist, user *User, like
 	return PlaylistTransfer{
 		ID:          p.ID,
 		Name:        p.Name,
-		Users:       UserTransferFromList(users),
+		Users:       UserTransferFromQuery(users),
 		Description: p.Description,
 		IsLiked:     isLiked,
 		CoverSrc:    p.CoverSrc,
 	}, nil
 }
 
-// PlaylistTransferFromList converts []Playlist to []PlaylistTransfer
-func PlaylistTransferFromList(ctx context.Context, playlists []Playlist, user *User, likeChecker playlistLikeChecker,
+// PlaylistTransferFromQuery converts []Playlist to []PlaylistTransfer
+func PlaylistTransferFromQuery(ctx context.Context, playlists []Playlist, user *User, likeChecker playlistLikeChecker,
 	usersGetter usersByPlaylistsGetter) ([]PlaylistTransfer, error) {
 
 	playlistTransfers := make([]PlaylistTransfer, 0, len(playlists))

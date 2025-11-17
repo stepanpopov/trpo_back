@@ -7,7 +7,6 @@ import (
 	_ "github.com/go-park-mail-ru/2023_1_Technokaif/docs"
 	commonHttp "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http/middleware"
-
 	album "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/album/delivery/http"
 	artist "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/delivery/http"
 	auth "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/delivery/http"
@@ -15,7 +14,6 @@ import (
 	csrf "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/csrf/delivery/http"
 	csrfM "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/csrf/delivery/http/middleware"
 	playlist "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/playlist/delivery/http"
-	search "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/search/delivery/http"
 	track "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track/delivery/http"
 	user "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/delivery/http"
 	userM "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/delivery/http/middleware"
@@ -42,7 +40,6 @@ func InitRouter(
 	authM *authM.Middleware,
 	csrfH *csrf.Handler,
 	csrfM *csrfM.Middleware,
-	searchH *search.Handler,
 	loggger logger.Logger) *chi.Mux {
 
 	r := chi.NewRouter()

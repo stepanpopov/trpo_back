@@ -9,9 +9,10 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/playlist"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 )
 
-const feedTracksAmountLimit uint32 = 100
+const feedTracksAmountLimit = 100
 
 // Usecase implements track.Usecase
 type Usecase struct {
@@ -19,22 +20,24 @@ type Usecase struct {
 	artistRepo   artist.Repository
 	albumRepo    album.Repository
 	playlistRepo playlist.Repository
+
+	logger logger.Logger
 }
 
 func NewUsecase(tr track.Repository, arr artist.Repository,
-	alr album.Repository, pr playlist.Repository) *Usecase {
+	alr album.Repository, pr playlist.Repository, l logger.Logger) *Usecase {
 
 	return &Usecase{
 		trackRepo:    tr,
 		artistRepo:   arr,
 		albumRepo:    alr,
 		playlistRepo: pr,
+
+		logger: l,
 	}
 }
 
-func (u *Usecase) Create(ctx context.Context,
-	track models.Track, artistsID []uint32, userID uint32) (uint32, error) {
-
+func (u *Usecase) Create(ctx context.Context, track models.Track, artistsID []uint32, userID uint32) (uint32, error) {
 	userInArtists := false
 	for _, artistID := range artistsID {
 		a, err := u.artistRepo.GetByID(ctx, artistID)

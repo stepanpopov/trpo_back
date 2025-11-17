@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	commonTests "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/tests"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	albumMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/album/mocks"
 	artistMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/mocks"
@@ -16,7 +17,7 @@ import (
 
 var ctx = context.Background()
 
-func TestTrackUsecase_Create(t *testing.T) {
+func TestTrackUsecaseCreate(t *testing.T) {
 	type mockBehavior func(tr *trackMocks.MockRepository, ar *artistMocks.MockRepository,
 		track models.Track, artistsID []uint32, userID uint32)
 
@@ -27,7 +28,9 @@ func TestTrackUsecase_Create(t *testing.T) {
 	alr := albumMocks.NewMockRepository(c)
 	pr := playlistMocks.NewMockRepository(c)
 
-	u := NewUsecase(tr, arr, alr, pr)
+	l := commonTests.MockLogger(c)
+
+	u := NewUsecase(tr, arr, alr, pr, l)
 
 	var correctUserID uint32 = 1
 	correctArtists := []models.Artist{

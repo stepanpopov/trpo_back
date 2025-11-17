@@ -13,7 +13,7 @@ import (
 	tokenMocks "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/token/mocks"
 )
 
-func TestCSRFDeliveryHTTP_GetCSRF(t *testing.T) {
+func TestDeliveryGetCSRF(t *testing.T) {
 	// Init
 	type mockBehavior func(t *tokenMocks.MockUsecase, u *models.User)
 
