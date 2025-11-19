@@ -161,7 +161,6 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	commonHTTP.SuccessResponse(w, lr, h.logger)
 }
 
-// swaggermock
 func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	user, err := commonHTTP.GetUserFromRequest(r)
 	if err != nil {
@@ -222,18 +221,19 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	commonHTTP.SuccessResponse(w, resp, h.logger)
 }
 
-// swaggermock
 func (h *Handler) IsAuthenticated(w http.ResponseWriter, r *http.Request) {
 	iar := isAuthenticatedResponse{}
 
-	if _, err := commonHTTP.GetUserFromRequest(r); err == nil {
+	_, err := commonHTTP.GetUserFromRequest(r)
+	if err != nil {
+		iar.Authenticated = false
+	} else {
 		iar.Authenticated = true
 	}
 
 	commonHTTP.SuccessResponse(w, iar, h.logger)
 }
 
-// swaggermock
 func (h *Handler) Auth(w http.ResponseWriter, r *http.Request) {
 	if _, err := commonHTTP.GetUserFromRequest(r); err != nil {
 		commonHTTP.ErrorResponseWithErrLogging(w, r, userForbidden, http.StatusForbidden, h.logger, err)
