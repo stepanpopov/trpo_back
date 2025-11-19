@@ -2,7 +2,6 @@ package router
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swagger "github.com/swaggo/http-swagger"
 
 	_ "github.com/go-park-mail-ru/2023_1_Technokaif/docs"
@@ -47,20 +46,18 @@ func InitRouter(
 	loggger logger.Logger) *chi.Mux {
 
 	r := chi.NewRouter()
-
 	r.Use(middleware.Panic(loggger))
 	r.Use(middleware.Logging(loggger))
-	r.Use(middleware.Metrics())
 
-	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	r.Get("/swagger/*", swagger.WrapHandler)
 
 	r.Route("/api", func(r chi.Router) {
 
 		r.Route("/users", func(r chi.Router) {
 			r.With(authM.Authorization, userM.CheckUserAuthAndResponce).Route(userIdRoute, func(r chi.Router) {
-				r.Get("/", userH.Get)
 				r.Get("/playlists", playlistH.GetByUser)
+
+				r.Get("/", userH.Get)
 
 				r.With(csrfM.CheckCSRFToken).Group(func(r chi.Router) {
 					r.Post("/update", userH.UpdateInfo)
