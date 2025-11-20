@@ -1,10 +1,11 @@
 syntax = "proto3";
 
 package auth;
-option go_package = "auth/proto/generated";
+option go_package = "microservices/auth/proto";
 
-import "common.proto";
-import "google/protobuf/timestamp.proto";
+message Error {
+	uint32 code = 1; 
+}
 
 message SignUpMsg {
 	string username = 1; 
@@ -12,7 +13,8 @@ message SignUpMsg {
 	string password = 3; 
 	string firstName = 4; 
 	string lastName = 5; 
-	google.protobuf.Timestamp birthDate = 6;
+	string sex = 6; 
+	string birthDate = 7;
 }
 
 message SignUpResponse {
@@ -27,6 +29,19 @@ message Creds {
 message AuthData {
     uint32 id = 1;
     uint32 version = 2;
+}
+
+message UserResponse {
+    uint32 id = 1;
+	uint32 version = 2;
+    string username = 3; 
+	string email = 4; 
+	string passwordHash = 5; 
+	string firstName = 6; 
+	string lastName = 7; 
+	string sex = 8; 
+	string birthDate = 9; 
+	string avatarSrc = 10;
 }
 
 message IncreaseUserVersionMsg {
@@ -44,8 +59,8 @@ message ChangePassResponse {}
 
 service Authorization {
     rpc SignUpUser(SignUpMsg) returns (SignUpResponse) {};
-	rpc GetUserByCreds(Creds) returns (common.UserResponse) {};
-	rpc GetUserByAuthData(AuthData) returns (common.UserResponse) {};
+	rpc GetUserByCreds(Creds) returns (UserResponse) {};
+	rpc GetUserByAuthData(AuthData) returns (UserResponse) {};
 	rpc IncreaseUserVersion(IncreaseUserVersionMsg) returns (IncreaseUserVersionResponse) {};
 	rpc ChangePassword(ChangePassMsg) returns (ChangePassResponse) {};
 }

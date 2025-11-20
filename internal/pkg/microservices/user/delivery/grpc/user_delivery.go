@@ -5,16 +5,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
-
-	commonProtoUtils "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/common"
-	commonProto "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/common/proto/generated"
 	proto "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/user/proto/generated"
-
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 )
@@ -33,7 +30,7 @@ func NewUserGRPC(userServices user.Usecase, l logger.Logger) *userGRPC {
 	}
 }
 
-func (u *userGRPC) GetByID(ctx context.Context, msg *proto.Id) (*commonProto.UserResponse, error) {
+func (u *userGRPC) GetByID(ctx context.Context, msg *proto.Id) (*proto.UserResponse, error) {
 	user, err := u.userServices.GetByID(ctx, msg.Id)
 	if err != nil {
 		var errNoSuchUser *models.NoSuchUserError
@@ -44,12 +41,13 @@ func (u *userGRPC) GetByID(ctx context.Context, msg *proto.Id) (*commonProto.Use
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return commonProtoUtils.UserToProto(user), nil
+	return userToProto(user), nil
 }
 
 func (u *userGRPC) UpdateInfo(ctx context.Context, msg *proto.UpdateInfoMsg) (*proto.UpdateInfoResponse, error) {
-	if err := msg.BirthDate.CheckValid(); err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+	time, err := time.Parse("2006-01-02", msg.BirthDate)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "failed to parse date")
 	}
 
 	userInfo := &models.User{
@@ -57,7 +55,8 @@ func (u *userGRPC) UpdateInfo(ctx context.Context, msg *proto.UpdateInfoMsg) (*p
 		Email:     msg.Email,
 		FirstName: msg.FirstName,
 		LastName:  msg.LastName,
-		BirthDate: models.Date{Time: msg.BirthDate.AsTime()},
+		Sex:       models.Sex(msg.Sex),
+		BirthDate: models.Date{Time: time},
 	}
 
 	if err := u.userServices.UpdateInfo(ctx, userInfo); err != nil {
@@ -138,10 +137,25 @@ func (u *userGRPC) GetByPlaylist(ctx context.Context, msg *proto.GetByPlaylistMs
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	usersProto := make([]*commonProto.UserResponse, 0, len(users))
+	usersProto := make([]*proto.UserResponse, 0, len(users))
 	for _, u := range users {
-		usersProto = append(usersProto, commonProtoUtils.UserToProto(&u))
+		usersProto = append(usersProto, userToProto(&u))
 	}
 
 	return &proto.GetByPlaylistResponse{Users: usersProto}, nil
+}
+
+func userToProto(user *models.User) *proto.UserResponse {
+	return &proto.UserResponse{
+		Id:           user.ID,
+		Version:      user.Version,
+		Username:     user.Username,
+		Email:        user.Email,
+		PasswordHash: user.Password,
+		FirstName:    user.FirstName,
+		LastName:     user.LastName,
+		Sex:          string(user.Sex),
+		AvatarSrc:    user.AvatarSrc,
+		BirthDate:    user.BirthDate.Format("2006-01-02"),
+	}
 }

@@ -22,15 +22,15 @@ type Server struct {
 
 // runConfig is server's config for host and port
 type runConfig struct {
-	ServerEndp string
+	ServerPort string
 }
 
-func initServerRunConfig(endp string) (runConfig, error) {
+func initServerRunConfig(port string) (runConfig, error) {
 	cfg := runConfig{
-		ServerEndp: endp,
+		ServerPort: port,
 	}
 
-	if strings.TrimSpace(cfg.ServerEndp) == "" {
+	if strings.TrimSpace(cfg.ServerPort) == "" {
 		return runConfig{}, errors.New("invalid server run config")
 	}
 
@@ -44,7 +44,7 @@ func (s *Server) Init(port string, handler http.Handler) error {
 	}
 
 	s.httpServer = &http.Server{
-		Addr:           cfg.ServerEndp,
+		Addr:           ":" + cfg.ServerPort,
 		Handler:        handler,
 		MaxHeaderBytes: maxHeaderBytes,
 		ReadTimeout:    readTimeout,

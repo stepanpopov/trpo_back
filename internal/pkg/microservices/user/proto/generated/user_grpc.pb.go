@@ -4,11 +4,10 @@
 // - protoc             v3.12.4
 // source: user.proto
 
-package generated
+package proto
 
 import (
 	context "context"
-	generated "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/common/proto/generated"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -23,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserClient interface {
-	GetByID(ctx context.Context, in *Id, opts ...grpc.CallOption) (*generated.UserResponse, error)
+	GetByID(ctx context.Context, in *Id, opts ...grpc.CallOption) (*UserResponse, error)
 	UpdateInfo(ctx context.Context, in *UpdateInfoMsg, opts ...grpc.CallOption) (*UpdateInfoResponse, error)
 	UploadAvatar(ctx context.Context, opts ...grpc.CallOption) (User_UploadAvatarClient, error)
 	GetByPlaylist(ctx context.Context, in *GetByPlaylistMsg, opts ...grpc.CallOption) (*GetByPlaylistResponse, error)
@@ -37,8 +36,8 @@ func NewUserClient(cc grpc.ClientConnInterface) UserClient {
 	return &userClient{cc}
 }
 
-func (c *userClient) GetByID(ctx context.Context, in *Id, opts ...grpc.CallOption) (*generated.UserResponse, error) {
-	out := new(generated.UserResponse)
+func (c *userClient) GetByID(ctx context.Context, in *Id, opts ...grpc.CallOption) (*UserResponse, error) {
+	out := new(UserResponse)
 	err := c.cc.Invoke(ctx, "/user.User/GetByID", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -102,7 +101,7 @@ func (c *userClient) GetByPlaylist(ctx context.Context, in *GetByPlaylistMsg, op
 // All implementations must embed UnimplementedUserServer
 // for forward compatibility
 type UserServer interface {
-	GetByID(context.Context, *Id) (*generated.UserResponse, error)
+	GetByID(context.Context, *Id) (*UserResponse, error)
 	UpdateInfo(context.Context, *UpdateInfoMsg) (*UpdateInfoResponse, error)
 	UploadAvatar(User_UploadAvatarServer) error
 	GetByPlaylist(context.Context, *GetByPlaylistMsg) (*GetByPlaylistResponse, error)
@@ -113,7 +112,7 @@ type UserServer interface {
 type UnimplementedUserServer struct {
 }
 
-func (UnimplementedUserServer) GetByID(context.Context, *Id) (*generated.UserResponse, error) {
+func (UnimplementedUserServer) GetByID(context.Context, *Id) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByID not implemented")
 }
 func (UnimplementedUserServer) UpdateInfo(context.Context, *UpdateInfoMsg) (*UpdateInfoResponse, error) {

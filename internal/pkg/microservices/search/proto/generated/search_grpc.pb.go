@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: search.proto
 
-package generated
+package proto
 
 import (
 	context "context"

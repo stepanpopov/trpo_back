@@ -3,14 +3,13 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
-	proto "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/auth/proto/generated"
-	commonProtoUtils "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/common"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/auth/proto/generated"
 )
 
 type AuthAgent struct {
@@ -30,7 +29,8 @@ func (a *AuthAgent) SignUpUser(ctx context.Context, u models.User) (uint32, erro
 		Password:  u.Password,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
-		BirthDate: timestamppb.New(u.BirthDate.Time),
+		Sex:       string(u.Sex),
+		BirthDate: u.BirthDate.Format("2006-01-02"), // TODO Check format
 	}
 
 	resp, err := a.client.SignUpUser(ctx, msg)
@@ -70,7 +70,7 @@ func (a *AuthAgent) GetUserByCreds(ctx context.Context, username, plainPassword 
 		return nil, err
 	}
 
-	user, err := commonProtoUtils.ProtoToUser(resp)
+	user, err := protoToUser(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (a *AuthAgent) GetUserByAuthData(ctx context.Context, userID, userVersion u
 		return nil, err
 	}
 
-	user, err := commonProtoUtils.ProtoToUser(resp)
+	user, err := protoToUser(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -141,4 +141,26 @@ func (a *AuthAgent) ChangePassword(ctx context.Context, userID uint32, password 
 		return err
 	}
 	return nil
+}
+
+func protoToUser(userProto *proto.UserResponse) (*models.User, error) {
+	time, err := time.Parse("2006-01-02", userProto.BirthDate)
+	if err != nil {
+		return nil, err
+	}
+
+	user := &models.User{
+		ID:        userProto.Id,
+		Version:   userProto.Version,
+		Username:  userProto.Username,
+		Email:     userProto.Email,
+		Password:  userProto.PasswordHash,
+		FirstName: userProto.FirstName,
+		LastName:  userProto.LastName,
+		Sex:       models.Sex(userProto.Sex),
+		AvatarSrc: userProto.AvatarSrc,
+		BirthDate: models.Date{Time: time},
+	}
+
+	return user, nil
 }
