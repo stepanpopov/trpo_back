@@ -27,7 +27,7 @@ type Error struct {
 	Message string `json:"message"`
 }
 
-func ErrorResponse(w http.ResponseWriter, r *http.Request, msg string, code int, logger logger.Logger) {
+func ErrorResponse(w http.ResponseWriter, msg string, code int, logger logger.Logger) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	errorResp := Error{Message: msg}
@@ -38,12 +38,10 @@ func ErrorResponse(w http.ResponseWriter, r *http.Request, msg string, code int,
 			logger.Errorf("failed to write response: %v", err)
 		}
 		w.WriteHeader(http.StatusInternalServerError)
-		*r = *WrapWithCode(r, http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(code)
-	*r = *WrapWithCode(r, code)
 	if _, err := w.Write(message); err != nil {
 		logger.Errorf("failed to write response: %v", err)
 	}
@@ -62,15 +60,14 @@ func ErrorResponseWithErrLogging(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
-	ErrorResponse(w, r, msg, code, logger)
+	ErrorResponse(w, msg, code, logger)
 }
 
-func SuccessResponse(w http.ResponseWriter, r *http.Request, response any, logger logger.Logger) {
+func SuccessResponse(w http.ResponseWriter, response any, logger logger.Logger) {
 	message, err := json.Marshal(response)
 	if err != nil {
 		logger.Error(err.Error())
-		ErrorResponseWithErrLogging(w, r, "can't encode response into json", http.StatusInternalServerError, logger, err)
-		WrapWithCode(r, http.StatusInternalServerError)
+		ErrorResponse(w, "can't encode response into json", http.StatusInternalServerError, logger)
 		return
 	}
 
@@ -78,5 +75,4 @@ func SuccessResponse(w http.ResponseWriter, r *http.Request, response any, logge
 	if _, err := w.Write(message); err != nil {
 		logger.Errorf("failed to write response: %v", err)
 	}
-	*r = *WrapWithCode(r, http.StatusOK)
 }
