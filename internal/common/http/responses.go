@@ -54,9 +54,9 @@ func ErrorResponseWithErrLogging(w http.ResponseWriter, r *http.Request,
 
 	if err != nil {
 		if code < minErrorToLogCode {
-			logger.InfoReqID(r.Context(), err.Error())
+			logger.InfoReqID(r, err.Error())
 		} else {
-			logger.ErrorReqID(r.Context(), err.Error())
+			logger.ErrorReqID(r, err.Error())
 		}
 	}
 

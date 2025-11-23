@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -97,22 +96,23 @@ func (u *UserAgent) UploadAvatar(ctx context.Context, userID uint32, file io.Rea
 		return err
 	}
 
-	if err = stream.Send(
-		&proto.UploadAvatarMsg{
-			Data: &proto.UploadAvatarMsg_Extra{
-				Extra: &proto.UploadAvatarExtra{
-					UserId:        userID,
-					FileExtension: fileExtension,
-				},
+	err = stream.Send(&proto.UploadAvatarMsg{
+		Data: &proto.UploadAvatarMsg_Extra{
+			Extra: &proto.UploadAvatarExtra{
+				UserId:        userID,
+				FileExtension: fileExtension,
 			},
-		}); err != nil {
-		return err
+		},
+	})
+	if err != nil {
+		return nil
 	}
 
-	var fileChunk [1024]byte
+	fileChunk := make([]byte, 1024)
+
 	for {
-		bytesRead, err := file.Read(fileChunk[:])
-		if errors.Is(err, io.EOF) {
+		bytesRead, err := file.Read(fileChunk)
+		if err == io.EOF {
 			break
 		}
 		if err != nil {
