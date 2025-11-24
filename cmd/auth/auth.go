@@ -3,12 +3,16 @@ package main
 import (
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
+	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/joho/godotenv" // load environment
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 
 	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/internal/config"
@@ -21,6 +25,18 @@ import (
 	authRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/repository/postgresql"
 	authUsecase "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth/usecase"
 	userRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/repository/postgresql"
+)
+
+var (
+	reg = prometheus.NewRegistry()
+
+	grpcMetrics = grpcPrometheus.NewServerMetrics()
+
+	customizedCounterMetric = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "fluire",
+		Subsystem: "auth",
+		Name:      "req_counter",
+	}, []string{"name"})
 )
 
 func main() {
@@ -52,8 +68,20 @@ func main() {
 		logger.Errorf("Cant listen port: %v", err)
 		return
 	}
+	reg.MustRegister(grpcMetrics, customizedCounterMetric)
+	customizedCounterMetric.WithLabelValues("auth_test")
 
 	server := grpc.NewServer()
+
+	grpcMetrics.InitializeMetrics(server)
+
+	httpMetricsServer := &http.Server{Handler: promhttp.HandlerFor(reg, promhttp.HandlerOpts{}), Addr: os.Getenv("AUTH_EXPORTER_ENDPOINT")}
+	go func() {
+		if err := httpMetricsServer.ListenAndServe(); err != nil {
+			logger.Errorf("Unable to start a http album metrics server:", err)
+		}
+	}()
+
 	authProto.RegisterAuthorizationServer(server, authGRPC.NewAuthGRPC(authUsecase, logger))
 
 	stop := make(chan os.Signal, 1)
