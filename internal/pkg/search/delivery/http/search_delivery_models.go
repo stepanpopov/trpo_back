@@ -2,14 +2,8 @@ package delivery
 
 import (
 	valid "github.com/asaskevich/govalidator"
-
-	albumHTTP "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/album/delivery/http"
-	artistHTTP "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/artist/delivery/http"
-	playlistHTTP "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/playlist/delivery/http"
-	trackHTTP "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/track/delivery/http"
+	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 )
-
-//go:generate easyjson -no_std_marshalers search_delivery_models.go
 
 // Response messages
 const (
@@ -19,7 +13,6 @@ const (
 	playlistsFindServerError = "can't find playlists"
 )
 
-//easyjson:json
 type searchRequest struct {
 	Query  string `json:"query" valid:"required"`
 	Amount uint32 `json:"amount" valid:"required,range(1|100)"`
@@ -30,22 +23,18 @@ func (sr *searchRequest) validate() error {
 	return err
 }
 
-//easyjson:json
 type searchAlbumsResponse struct {
-	Albums []albumHTTP.AlbumTransfer `json:"albums"`
+	Albums []models.AlbumTransfer `json:"albums"`
 }
 
-//easyjson:json
 type searchArtistsResponse struct {
-	Artists []artistHTTP.ArtistTransfer `json:"artists"`
+	Artists []models.ArtistTransfer `json:"artists"`
 }
 
-//easyjson:json
 type searchTracksResponse struct {
-	Tracks []trackHTTP.TrackTransfer `json:"tracks"`
+	Tracks []models.TrackTransfer `json:"tracks"`
 }
 
-//easyjson:json
 type searchPlaylistsResponse struct {
-	Playlists []playlistHTTP.PlaylistTransfer `json:"playlists"`
+	Playlists []models.PlaylistTransfer `json:"playlists"`
 }
