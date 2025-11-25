@@ -12,7 +12,7 @@ import (
 
 type ResponseWriterStatusCodeSaver struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode int // TODO check negative
 }
 
 func (w *ResponseWriterStatusCodeSaver) WriteHeader(code int) {
