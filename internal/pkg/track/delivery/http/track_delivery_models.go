@@ -5,10 +5,9 @@ import (
 	"html"
 
 	valid "github.com/asaskevich/govalidator"
+
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 )
-
-//go:generate easyjson -no_std_marshalers track_delivery_models.go
 
 // Response messages
 const (
@@ -28,7 +27,7 @@ const (
 	trackDeletedSuccessfully = "ok"
 )
 
-//easyjson:json
+// Create
 type trackCreateInput struct {
 	Name          string   `json:"name" valid:"required"`
 	AlbumID       *uint32  `json:"albumID"`
@@ -62,17 +61,16 @@ func (tci *trackCreateInput) ToTrack() models.Track {
 	}
 }
 
-//easyjson:json
 type trackCreateResponse struct {
 	ID uint32 `json:"id"`
 }
 
-//easyjson:json
+// Delete
 type trackDeleteResponse struct {
 	Status string `json:"status"`
 }
 
-//easyjson:json
+// Likes
 type trackLikeResponse struct {
 	Status string `json:"status"`
 }

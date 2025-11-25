@@ -139,25 +139,6 @@ definitions:
           type: integer
         type: array
     type: object
-  http.signUpInput:
-    properties:
-      avatarSrc:
-        type: string
-      birthDate:
-        $ref: '#/definitions/models.Date'
-      email:
-        type: string
-      firstName:
-        type: string
-      lastName:
-        type: string
-      password:
-        type: string
-      sex:
-        $ref: '#/definitions/models.Sex'
-      username:
-        type: string
-    type: object
   http.signUpResponse:
     properties:
       id:
@@ -296,6 +277,25 @@ definitions:
       recordSrc:
         type: string
     type: object
+  models.User:
+    properties:
+      avatarSrc:
+        type: string
+      birthDate:
+        $ref: '#/definitions/models.Date'
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      password:
+        type: string
+      sex:
+        $ref: '#/definitions/models.Sex'
+      username:
+        type: string
+    type: object
   models.UserTransfer:
     properties:
       avatarSrc:
@@ -399,9 +399,7 @@ paths:
         "200":
           description: Album got
           schema:
-            items:
-              $ref: '#/definitions/models.AlbumTransfer'
-            type: array
+            $ref: '#/definitions/models.AlbumTransfer'
         "400":
           description: Incorrect input
           schema:
@@ -499,7 +497,9 @@ paths:
         "200":
           description: Albums feed
           schema:
-            $ref: '#/definitions/models.AlbumTransfer'
+            items:
+              $ref: '#/definitions/models.AlbumTransfer'
+            type: array
         "500":
           description: Server error
           schema:
@@ -837,7 +837,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/http.signUpInput'
+          $ref: '#/definitions/models.User'
       produces:
       - application/json
       responses:

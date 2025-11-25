@@ -1,8 +1,8 @@
 package models
 
-import "context"
-
-//go:generate easyjson -no_std_marshalers playlist.go
+import (
+	"context"
+)
 
 type Playlist struct {
 	ID          uint32  `db:"id"`
@@ -11,25 +11,21 @@ type Playlist struct {
 	CoverSrc    string  `db:"cover_src"`
 }
 
-//easyjson:json
 type PlaylistTransfer struct {
-	ID          uint32        `json:"id"`
-	Name        string        `json:"name"`
-	Users       UserTransfers `json:"users"`
-	Description *string       `json:"description,omitempty"`
-	IsLiked     bool          `json:"isLiked"`
-	CoverSrc    string        `json:"cover,omitempty"`
+	ID          uint32         `json:"id"`
+	Name        string         `json:"name"`
+	Users       []UserTransfer `json:"users"`
+	Description *string        `json:"description,omitempty"`
+	IsLiked     bool           `json:"isLiked"`
+	CoverSrc    string         `json:"cover,omitempty"`
 }
-
-//easyjson:json
-type PlaylistTransfers []PlaylistTransfer
 
 type usersByPlaylistsGetter func(ctx context.Context, playlistID uint32) ([]User, error)
 type playlistLikeChecker func(ctx context.Context, playlistID, userID uint32) (bool, error)
 
 // PlaylistTransferFromEntry converts Playlist to PlaylistTransfer
-func PlaylistTransferFromEntry(ctx context.Context, p Playlist, user *User,
-	likeChecker playlistLikeChecker, usersGetter usersByPlaylistsGetter) (PlaylistTransfer, error) {
+func PlaylistTransferFromEntry(ctx context.Context, p Playlist, user *User, likeChecker playlistLikeChecker,
+	usersGetter usersByPlaylistsGetter) (PlaylistTransfer, error) {
 
 	users, err := usersGetter(ctx, p.ID)
 	if err != nil {
@@ -56,7 +52,7 @@ func PlaylistTransferFromEntry(ctx context.Context, p Playlist, user *User,
 
 // PlaylistTransferFromList converts []Playlist to []PlaylistTransfer
 func PlaylistTransferFromList(ctx context.Context, playlists []Playlist, user *User, likeChecker playlistLikeChecker,
-	usersGetter usersByPlaylistsGetter) (PlaylistTransfers, error) {
+	usersGetter usersByPlaylistsGetter) ([]PlaylistTransfer, error) {
 
 	playlistTransfers := make([]PlaylistTransfer, 0, len(playlists))
 

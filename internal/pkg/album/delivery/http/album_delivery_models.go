@@ -8,8 +8,6 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 )
 
-//go:generate easyjson -no_std_marshalers album_delivery_models.go
-
 // Response messages
 const (
 	albumNotFound  = "no such album"
@@ -26,7 +24,7 @@ const (
 	albumDeletedSuccessfully = "ok"
 )
 
-//easyjson:json
+// Create
 type albumCreateInput struct {
 	Name        string   `json:"name" valid:"required"`
 	ArtistsID   []uint32 `json:"artists" valid:"required"`
@@ -58,17 +56,16 @@ func (aci *albumCreateInput) ToAlbum() models.Album {
 	}
 }
 
-//easyjson:json
 type albumCreateResponse struct {
 	ID uint32 `json:"id"`
 }
 
-//easyjson:json
+// Delete
 type albumDeleteResponse struct {
 	Status string `json:"status"`
 }
 
-//easyjson:json
+// Likes
 type albumLikeResponse struct {
 	Status string `json:"status"`
 }

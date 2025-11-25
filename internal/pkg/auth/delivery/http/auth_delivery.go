@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/auth"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/token"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
-	easyjson "github.com/mailru/easyjson"
 )
 
 type Handler struct {
@@ -32,26 +32,24 @@ func NewHandler(au auth.Usecase, tu token.Usecase, l logger.Logger) *Handler {
 // @Description	Create account
 // @Accept		json
 // @Produce		json
-// @Param		user	body		signUpInput	true	"User info"
+// @Param		user	body		models.User	true	"User info"
 // @Success		200		{object}	signUpResponse		"User created"
 // @Failure		400		{object}	http.Error			"Incorrect input"
 // @Failure		500		{object}	http.Error			"Server error"
 // @Router		/api/auth/signup [post]
 func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
-	var sui signUpInput
-	if err := easyjson.UnmarshalFromReader(r.Body, &sui); err != nil {
+	var user models.User
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		commonHTTP.ErrorResponseWithErrLogging(w, r,
 			commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger, err)
 		return
 	}
 
-	if err := signUpInputAuthDeliveryValidate(&sui); err != nil {
+	if err := userAuthDeliveryValidate(&user); err != nil {
 		commonHTTP.ErrorResponseWithErrLogging(w, r,
 			commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger, err)
 		return
 	}
-
-	user := sui.ToUser()
 
 	id, err := h.authServices.SignUpUser(r.Context(), user)
 	if err != nil {
@@ -81,12 +79,12 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 // @Produce		json
 // @Param		userInput	body		loginInput		true	"username and password"
 // @Success		200			{object}	loginResponse	"User created"
-// @Failure		400			{object}	http.Error		"Incorrect input"
-// @Failure		500			{object}	http.Error		"Server error"
+// @Failure		400			{object}	http.Error	"Incorrect input"
+// @Failure		500			{object}	http.Error	"Server error"
 // @Router		/api/auth/login [post]
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var userInput loginInput
-	if err := easyjson.UnmarshalFromReader(r.Body, &userInput); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&userInput); err != nil {
 		commonHTTP.ErrorResponseWithErrLogging(w, r,
 			commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger, err)
 		return
@@ -140,8 +138,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 // @Accept		json
 // @Produce		json
 // @Success		200	{object}	logoutResponse	"User loged out"
-// @Failure		400	{object}	http.Error		"Logout fail"
-// @Failure		500	{object}	http.Error		"Server error"
+// @Failure		400	{object}	http.Error	"Logout fail"
+// @Failure		500	{object}	http.Error	"Server error"
 // @Router		/api/auth/logout [get]
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	user, err := commonHTTP.GetUserFromRequest(r)
@@ -173,7 +171,8 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var passwordsInput changePassInput
-	if err := easyjson.UnmarshalFromReader(r.Body, &passwordsInput); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&passwordsInput); err != nil {
 		commonHTTP.ErrorResponseWithErrLogging(w, r,
 			commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger, err)
 		return

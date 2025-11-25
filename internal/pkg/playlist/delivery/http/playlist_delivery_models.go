@@ -8,8 +8,6 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 )
 
-//go:generate easyjson -no_std_marshalers playlist_delivery_models.go
-
 const MaxCoverMemory = 5 << 20
 const coverFormKey = "cover"
 
@@ -46,8 +44,6 @@ const (
 )
 
 // Create
-//
-//easyjson:json
 type playlistCreateInput struct {
 	Name        string   `json:"name" valid:"required"`
 	UsersID     []uint32 `json:"users" valid:"required"`
@@ -77,8 +73,6 @@ func (pci *playlistCreateInput) ToPlaylist() models.Playlist {
 }
 
 // Update
-//
-//easyjson:json
 type playlistUpdateInput struct {
 	Name        string   `json:"name" valid:"required"`
 	UsersID     []uint32 `json:"users" valid:"required"`
@@ -108,12 +102,10 @@ func (pui *playlistUpdateInput) ToPlaylist(playlistID uint32) models.Playlist {
 	}
 }
 
-//easyjson:json
 type playlistCreateResponse struct {
 	ID uint32 `json:"id"`
 }
 
-//easyjson:json
 type defaultResponse struct {
 	Status string `json:"status"`
 }

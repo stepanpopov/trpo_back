@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"path/filepath"
@@ -9,7 +10,6 @@ import (
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
-	easyjson "github.com/mailru/easyjson"
 )
 
 type Handler struct {
@@ -68,7 +68,7 @@ func (h *Handler) UpdateInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userInfo userInfoInput
-	if err := easyjson.UnmarshalFromReader(r.Body, &userInfo); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&userInfo); err != nil {
 		commonHTTP.ErrorResponseWithErrLogging(w, r,
 			commonHTTP.IncorrectRequestBody, http.StatusBadRequest, h.logger, err)
 		return
