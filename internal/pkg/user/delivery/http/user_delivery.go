@@ -133,7 +133,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	defer avatarFile.Close()
 
 	extension := filepath.Ext(avatarHeader.Filename)
-	err = h.userServices.UploadAvatar(r.Context(), user.ID, avatarFile, avatarHeader.Size, extension)
+	err = h.userServices.UploadAvatar(r.Context(), user.ID, avatarFile, extension)
 	if err != nil {
 		var errAvatarWrongFormat *models.AvatarWrongFormatError
 		if errors.As(err, &errAvatarWrongFormat) {
