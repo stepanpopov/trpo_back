@@ -18,13 +18,11 @@ import (
 
 	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/internal/config"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/internal/db/postgresql"
-	"github.com/go-park-mail-ru/2023_1_Technokaif/cmd/internal/s3"
 	commonHttp "github.com/go-park-mail-ru/2023_1_Technokaif/internal/common/http"
 	userGRPC "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/user/delivery/grpc"
 	userProto "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/microservices/user/proto/generated"
 	"github.com/go-park-mail-ru/2023_1_Technokaif/pkg/logger"
 
-	userS3 "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/client/s3"
 	userRepository "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/repository/postgresql"
 	userUsecase "github.com/go-park-mail-ru/2023_1_Technokaif/internal/pkg/user/usecase"
 )
@@ -59,14 +57,7 @@ func main() {
 
 	userRepo := userRepository.NewPostgreSQL(db, tables)
 
-	s3Client, err := s3.MakeS3MinioClient(os.Getenv(config.S3HostParam), os.Getenv(config.S3AccessKeyParam), os.Getenv(config.S3SecretKeyParam))
-	if err != nil {
-		logger.Errorf("Error while connecting to S3: %v", err)
-		return
-	}
-	userS3 := userS3.NewS3AvatarSaver(os.Getenv(config.S3BucketParam), os.Getenv(config.S3AvatarFolderParam), s3Client)
-
-	userUsecase := userUsecase.NewUsecase(userRepo, userS3)
+	userUsecase := userUsecase.NewUsecase(userRepo)
 
 	listener, err := net.Listen("tcp", os.Getenv(config.UserListenParam))
 	defer func() {
@@ -90,8 +81,8 @@ func main() {
 	grpcMetrics.InitializeMetrics(server)
 
 	httpMetricsServer := &http.Server{
-		Handler:        promhttp.HandlerFor(reg, promhttp.HandlerOpts{}),
-		Addr:           os.Getenv(config.UserExporterListenParam),
+		Handler: promhttp.HandlerFor(reg, promhttp.HandlerOpts{}), 
+		Addr: os.Getenv(config.UserExporterListenParam),
 		MaxHeaderBytes: maxHeaderBytesHTTP,
 		ReadTimeout:    readTimeoutHTTP,
 		WriteTimeout:   writeTimeoutHTTP,

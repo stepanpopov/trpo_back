@@ -4,6 +4,7 @@ package http
 
 import (
 	json "encoding/json"
+	models "github.com/go-park-mail-ru/2023_1_Technokaif/internal/models"
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -94,6 +95,8 @@ func easyjson40dcd6ddDecodeGithubComGoParkMailRu20231TechnokaifInternalPkgUserDe
 			out.FirstName = string(in.String())
 		case "lastName":
 			out.LastName = string(in.String())
+		case "sex":
+			out.Sex = models.Sex(in.String())
 		case "birthDate":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.BirthDate).UnmarshalJSON(data))
@@ -126,6 +129,11 @@ func easyjson40dcd6ddEncodeGithubComGoParkMailRu20231TechnokaifInternalPkgUserDe
 		const prefix string = ",\"lastName\":"
 		out.RawString(prefix)
 		out.String(string(in.LastName))
+	}
+	{
+		const prefix string = ",\"sex\":"
+		out.RawString(prefix)
+		out.String(string(in.Sex))
 	}
 	{
 		const prefix string = ",\"birthDate\":"

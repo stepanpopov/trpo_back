@@ -98,6 +98,8 @@ func easyjson9e1087fdDecodeGithubComGoParkMailRu20231TechnokaifInternalModels1(i
 			out.FirstName = string(in.String())
 		case "lastName":
 			out.LastName = string(in.String())
+		case "sex":
+			out.Sex = Sex(in.String())
 		case "birthDate":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.BirthDate).UnmarshalJSON(data))
@@ -142,6 +144,11 @@ func easyjson9e1087fdEncodeGithubComGoParkMailRu20231TechnokaifInternalModels1(o
 		const prefix string = ",\"lastName\":"
 		out.RawString(prefix)
 		out.String(string(in.LastName))
+	}
+	{
+		const prefix string = ",\"sex\":"
+		out.RawString(prefix)
+		out.String(string(in.Sex))
 	}
 	if true {
 		const prefix string = ",\"birthDate\":"

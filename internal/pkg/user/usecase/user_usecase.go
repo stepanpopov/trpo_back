@@ -13,18 +13,12 @@ import (
 
 // Usecase implements user.Usecase
 type Usecase struct {
-	repo        user.Repository
-	avatarSaver AvatarSaver
+	repo user.Repository
 }
 
-type AvatarSaver interface {
-	Save(ctx context.Context, avatar io.Reader, objectName string, size int64) error
-}
-
-func NewUsecase(r user.Repository, saver AvatarSaver) *Usecase {
+func NewUsecase(r user.Repository) *Usecase {
 	return &Usecase{
-		repo:        r,
-		avatarSaver: saver,
+		repo: r,
 	}
 }
 
@@ -56,7 +50,9 @@ func (u *Usecase) UpdateInfo(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-func (u *Usecase) UploadAvatar(ctx context.Context, userID uint32, file io.ReadSeeker, size int64, fileExtension string) error {
+var dirForUserAvatar = filepath.Join(commonFile.MediaPath(), commonFile.AvatarFolder())
+
+func (u *Usecase) UploadAvatar(ctx context.Context, userID uint32, file io.ReadSeeker, fileExtension string) error {
 	if err := u.repo.Check(ctx, userID); err != nil {
 		return fmt.Errorf("(usecase) can't find user with id #%d: %w", userID, err)
 	}
@@ -66,13 +62,9 @@ func (u *Usecase) UploadAvatar(ctx context.Context, userID uint32, file io.ReadS
 		return fmt.Errorf("(usecase) file format %s: %w", fileType, &models.AvatarWrongFormatError{FileType: fileType})
 	}
 
-	filenameWithExtension, err := commonFile.FileHash(file, fileExtension)
+	filenameWithExtension, _, err := commonFile.CreateFile(file, fileExtension, dirForUserAvatar)
 	if err != nil {
-		return fmt.Errorf("(usecase) can't get file hash: %w", err)
-	}
-
-	if err := u.avatarSaver.Save(ctx, file, filenameWithExtension, size); err != nil {
-		return fmt.Errorf("(usecase) can't save avatar: %w", err)
+		return fmt.Errorf("(usecase) can't create file: %w", err)
 	}
 
 	avatarSrc := filepath.Join(commonFile.AvatarFolder(), filenameWithExtension)

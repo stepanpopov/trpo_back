@@ -1,3 +1,4 @@
+CREATE TYPE SEX AS ENUM('M', 'F', 'O'); 
 CREATE TABLE Users
 (
     id            SERIAL       PRIMARY KEY,
@@ -8,6 +9,7 @@ CREATE TABLE Users
     salt          VARCHAR(64)              NOT NULL,
     first_name    VARCHAR(20)              NOT NULL,
     last_name     VARCHAR(20)              NOT NULL,
+    sex           SEX                      NOT NULL,
     birth_date    DATE                     NOT NULL,
     avatar_src    TEXT
 );

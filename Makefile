@@ -5,8 +5,8 @@
 build:
 	./scripts/deploy/build_all.sh
 
-push:
-	./scripts/deploy/push.sh
+deploy:
+	./scripts/deploy/deploy.sh
 
 start:
 	docker-compose down
@@ -24,14 +24,14 @@ lint:
 
 check_coverage:
 	go test -coverpkg=./... -coverprofile=coverage.out ./... \
-	&& cat coverage.out | fgrep -v "mocks" | fgrep -v "docs" | fgrep -v "easyjson" > purified_coverage.out \
+	&& cat coverage.out | fgrep -v "mocks" | fgrep -v "docs" > purified_coverage.out \
 	&& go tool cover -func purified_coverage.out | grep total
 
 check_html_coverage:
 	go test -coverpkg=./... -coverprofile=coverage.out ./... \
-	&& cat coverage.out | fgrep -v "mocks" | fgrep -v "docs" | fgrep -v "easyjson" > purified_coverage.out \
+	&& cat coverage.out | fgrep -v "mocks" | fgrep -v "docs" > purified_coverage.out \
 	&& go tool cover -func purified_coverage.out | grep total \
-	&& go tool cover -html purified_coverage.out -o cover.html 
+	&& go tool cover -html=purified_coverage.out 
 
 generate_api_docs:
 	swag init -g cmd/api/main.go
