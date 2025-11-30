@@ -1,3 +1,4 @@
+// Package models contains the core data structures and validation logic for the application.
 package models
 
 import (
@@ -7,7 +8,16 @@ import (
 	valid "github.com/asaskevich/govalidator"
 )
 
-func init() { // For validation
+// init initializes custom validation rules for the application using the govalidator package.
+//
+// Custom Validation Rules:
+//   - "born": Validates that a given date is in the past.
+//   - "passwordcheck": Validates that a password contains at least one lowercase letter, one uppercase letter, and one digit.
+//
+// Behavior:
+//   - The "born" rule ensures that the provided date is before the current time.
+//   - The "passwordcheck" rule iterates through the password string to check for the presence of required character types.
+func init() {
 	valid.CustomTypeTagMap.Set("born", func(date interface{}, context interface{}) bool {
 		d, ok := date.(Date)
 		if !ok {

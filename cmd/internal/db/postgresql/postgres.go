@@ -49,8 +49,15 @@ func initPostgresConfig() (PostgresConfig, error) { // TODO CHECK FIELDS
 	return cfg, nil
 }
 
-// NewPostgresDB connects to chosen postgreSQL database
-// and returns interaction interface of the database
+// InitPostgresDB initializes a connection to the PostgreSQL database using the provided configuration.
+// It sets up the database connection pool and ensures the database is reachable.
+//
+// Parameters:
+//   - config: A configuration structure containing the necessary database connection details.
+//
+// Returns:
+//   - A pointer to the initialized database connection (e.g., *sql.DB).
+//   - An error if the database initialization or connection fails.
 func InitPostgresDB() (*sqlx.DB, PostgreSQLTables, error) {
 	cfg, err := initPostgresConfig()
 	if err != nil {

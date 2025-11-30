@@ -42,6 +42,16 @@ func observeResponseTime(duration time.Duration, method, route, code string) {
 		Observe(float64(duration.Microseconds()))
 }
 
+// Metrics is a middleware that observes and records metrics for HTTP requests.
+// It tracks the response time, HTTP method, route pattern, and status code of each request.
+// The metrics are recorded using the `observeResponseTime` function.
+//
+// Behavior:
+//   - If the route pattern is unavailable, it defaults to "NIL".
+//   - The middleware wraps the ResponseWriter to capture the status code.
+//
+// Returns:
+//   - A middleware function that wraps an http.Handler and records metrics for each request.
 func Metrics() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

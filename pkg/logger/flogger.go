@@ -19,7 +19,6 @@ type FLogger struct {
 
 func NewFLogger(getter ReqIDGetter) (*FLogger, error) {
 	logger, err := initZapLogger()
-
 	if err != nil {
 		return nil, fmt.Errorf("can't initialize logger: %w", err)
 	}
@@ -59,6 +58,13 @@ func (l *FLogger) ErrorReqID(ctx context.Context, msg string) {
 	l.Errorf("ReqID:%d %s", reqId, msg)
 }
 
+// ErrorfReqID logs an error message with a formatted string and the request ID from the context.
+// If the request ID is unavailable, it logs the message without the request ID.
+//
+// Parameters:
+//   - ctx: The context containing the request ID.
+//   - format: The format string for the log message.
+//   - a: Additional arguments for the formatted string.
 func (l *FLogger) ErrorfReqID(ctx context.Context, format string, a ...any) {
 	reqId, err := l.reqIdGetter(ctx)
 	if err != nil {
@@ -69,6 +75,12 @@ func (l *FLogger) ErrorfReqID(ctx context.Context, format string, a ...any) {
 	l.Errorf(fmt.Sprintf("ReID:%d ", reqId)+format, a...)
 }
 
+// InfoReqID logs an informational message with the request ID from the context.
+// If the request ID is unavailable, it logs the message without the request ID.
+//
+// Parameters:
+//   - ctx: The context containing the request ID.
+//   - msg: The informational message to log.
 func (l *FLogger) InfoReqID(ctx context.Context, msg string) {
 	reqId, err := l.reqIdGetter(ctx)
 	if err != nil {
@@ -79,6 +91,13 @@ func (l *FLogger) InfoReqID(ctx context.Context, msg string) {
 	l.Infof("ReqID:%d %s", reqId, msg)
 }
 
+// InfofReqID logs an informational message with a formatted string and the request ID from the context.
+// If the request ID is unavailable, it logs the message without the request ID.
+//
+// Parameters:
+//   - ctx: The context containing the request ID.
+//   - format: The format string for the log message.
+//   - a: Additional arguments for the formatted string.
 func (l *FLogger) InfofReqID(ctx context.Context, format string, a ...any) {
 	reqId, err := l.reqIdGetter(ctx)
 	if err != nil {
@@ -89,7 +108,12 @@ func (l *FLogger) InfofReqID(ctx context.Context, format string, a ...any) {
 	l.Infof(fmt.Sprintf("ReqID:%d ", reqId)+format, a...)
 }
 
-// initZapLogger customizes zap.Logger and returns, generally, FLogger
+// initZapLogger initializes and customizes a zap.Logger instance and returns it.
+// It sets up a console encoder with a custom time format and a default log level.
+//
+// Returns:
+//   - A zap.Logger instance.
+//   - An error if the logger initialization fails.
 func initZapLogger() (*zap.Logger, error) {
 	configConsole := zap.NewProductionEncoderConfig()
 	configConsole.EncodeTime = consoleTimeEncoder
